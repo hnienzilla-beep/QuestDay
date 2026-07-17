@@ -1,0 +1,42 @@
+[data-theme='forest'] {
+  --color-primary: #2f9e58;
+  --color-primary-light: #e5f5eb;
+  --color-success: #1f7a3f;
+}
+
+[data-theme='sunset'] {
+  --color-primary: #f2734d;
+  --color-primary-light: #fdece5;
+  --color-success: #f2b34d;
+}
+
+[data-theme='ocean'] {
+  --color-primary: #1f8fc4;
+  --color-primary-light: #e4f3fa;
+  --color-success: #2fb3a3;
+}
+
+.theme-preview-default {
+  background: #4f6df5;
+}
+.theme-preview-forest {
+  background: #2f9e58;
+}
+.theme-preview-sunset {
+  background: #f2734d;
+}
+.theme-preview-ocean {
+  background: #1f8fc4;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme='forest'] {
+    --color-primary-light: #16321f;
+  }
+  [data-theme='sunset'] {
+    --color-primary-light: #3a2318;
+  }
+  [data-theme='ocean'] {
+    --color-primary-light: #16303a;
+  }
+}

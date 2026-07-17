@@ -1,0 +1,30 @@
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+}
+
+.category-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.category-badge.Haushalt .dot {
+  background: var(--cat-haushalt);
+}
+.category-badge.Arbeit .dot {
+  background: var(--cat-arbeit);
+}
+.category-badge.Hobby .dot {
+  background: var(--cat-hobby);
+}
+.category-badge.Sonstiges .dot {
+  background: var(--cat-sonstiges);
+}

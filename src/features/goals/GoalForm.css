@@ -1,0 +1,33 @@
+.substep-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.substep-row input {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.substep-remove {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  padding: 4px 8px;
+}
+
+.substep-add {
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  padding: 8px;
+  width: 100%;
+  font-size: 13px;
+  margin-bottom: 14px;
+}

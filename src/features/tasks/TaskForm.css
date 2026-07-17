@@ -1,0 +1,22 @@
+.type-toggle {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.type-toggle button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.type-toggle button.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}

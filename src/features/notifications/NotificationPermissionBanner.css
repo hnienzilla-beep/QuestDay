@@ -1,0 +1,22 @@
+.reminder-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.reminder-banner p {
+  font-size: 13px;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.reminder-banner .btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}

@@ -1,0 +1,47 @@
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.task-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.task-item.done .task-item-title {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+.task-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-item-time {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.export-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 18px;
+  padding: 4px;
+  color: var(--color-text-secondary);
+}
