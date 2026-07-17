@@ -1,17 +1,19 @@
 import { addDays, isBefore, parseISO, startOfDay, format } from 'date-fns'
 import { db } from '../../db/db'
 import { isoDateOf } from '../../utils/dateUtils'
+import { isGoalDueOnDate, isRecurrenceActiveOnDate } from '../goals/goalCycles'
 
 /**
- * Ein Tag zählt als Streak-Tag, wenn alle an diesem Tag fälligen Aufgaben/Termine
- * erledigt wurden. Gibt es an diesem Tag nichts Fälliges, zählt er automatisch als erfüllt.
- * Goals fließen bewusst nicht ein (kein festes Tagesdatum).
+ * Ein Tag zählt als Streak-Tag, wenn alle an diesem Tag fälligen Aufgaben/Termine/
+ * wiederholenden Ziel-Zyklen erledigt wurden. Gibt es an diesem Tag nichts Fälliges,
+ * zählt er automatisch als erfüllt. Einmalige Ziele fließen bewusst nicht ein (kein
+ * festes Tagesdatum) - nur wiederholende Ziel-Zyklen mit Fälligkeitsdatum zählen.
  */
 export async function wasDayFullyComplete(date: Date): Promise<boolean> {
   const dateStr = isoDateOf(date)
   const weekday = date.getDay()
 
-  const [oneOffDue, recurringDue, appointmentsDue] = await Promise.all([
+  const [oneOffDue, recurringDue, appointmentsDue, allGoals] = await Promise.all([
     db.tasks.where('type').equals('oneoff').and((t) => 'dueDate' in t && t.dueDate === dateStr).toArray(),
     db.tasks
       .where('type')
@@ -23,15 +25,27 @@ export async function wasDayFullyComplete(date: Date): Promise<boolean> {
       )
       .toArray(),
     db.tasks.where('type').equals('appointment').and((t) => 'date' in t && t.date === dateStr).toArray(),
+    db.goals.toArray(),
   ])
 
+  const dueGoals = allGoals.filter(
+    (g) => g.recurrence !== null && isRecurrenceActiveOnDate(g.recurrence, dateStr) && isGoalDueOnDate(g.recurrence, dateStr),
+  )
+
   const dueTaskIds = [...oneOffDue, ...recurringDue, ...appointmentsDue].map((t) => t.id)
-  if (dueTaskIds.length === 0) return true
+  const dueGoalIds = dueGoals.map((g) => g.id)
+  if (dueTaskIds.length === 0 && dueGoalIds.length === 0) return true
 
-  const completions = await db.taskCompletions.where('completedDate').equals(dateStr).toArray()
-  const completedTaskIds = new Set(completions.map((c) => c.taskId))
+  const [taskCompletions, goalCompletions] = await Promise.all([
+    db.taskCompletions.where('completedDate').equals(dateStr).toArray(),
+    db.goalCycleCompletions.where('cycleDueDate').equals(dateStr).toArray(),
+  ])
+  const completedTaskIds = new Set(taskCompletions.map((c) => c.taskId))
+  const completedGoalIds = new Set(goalCompletions.map((c) => c.goalId))
 
-  return dueTaskIds.every((id) => completedTaskIds.has(id))
+  return (
+    dueTaskIds.every((id) => completedTaskIds.has(id)) && dueGoalIds.every((id) => completedGoalIds.has(id))
+  )
 }
 
 export async function evaluateStreakOnAppOpen(): Promise<void> {

@@ -3,6 +3,8 @@
   border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-bottom: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .goal-card-top {
@@ -53,4 +55,35 @@
 .substep-item.done span {
   text-decoration: line-through;
   color: var(--color-text-secondary);
+}
+
+.goal-missed-badge {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.goal-cycle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.goal-cycle-count {
+  color: var(--color-text-secondary);
+}
+
+.goal-stop-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  font-size: 12px;
+  padding: 2px;
+}
+
+.goal-stopped-label {
+  color: var(--color-text-secondary);
+  font-style: italic;
 }

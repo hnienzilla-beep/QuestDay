@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import './HomeView.css'
 import { db } from '../db/db'
 import type { Task } from '../types/task'
+import type { Goal, SubStep } from '../types/goal'
 import { todayISODate } from '../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../features/tasks/taskRepository'
 import { useCompleteTask } from '../features/tasks/useCompleteTask'
@@ -22,6 +23,7 @@ interface TodayItem {
 export default function HomeView() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showGoalForm, setShowGoalForm] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<{ goal: Goal; subSteps: SubStep[] } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const { completeTask, uncompleteTask } = useCompleteTask()
@@ -91,7 +93,11 @@ export default function HomeView() {
       )}
 
       {goals?.map((goal) => (
-        <GoalCard key={goal.id} goal={goal} />
+        <GoalCard
+          key={goal.id}
+          goal={goal}
+          onEdit={(g, subSteps) => setEditingGoal({ goal: g, subSteps })}
+        />
       ))}
 
       <button type="button" className="fab" onClick={() => setShowTaskForm(true)} aria-label="Neue Aufgabe">
@@ -102,6 +108,13 @@ export default function HomeView() {
         <TaskForm defaultDate={todayStr} onClose={() => setShowTaskForm(false)} />
       )}
       {showGoalForm && <GoalForm onClose={() => setShowGoalForm(false)} />}
+      {editingGoal && (
+        <GoalForm
+          goal={editingGoal.goal}
+          existingSubSteps={editingGoal.subSteps}
+          onClose={() => setEditingGoal(null)}
+        />
+      )}
     </div>
   )
 }

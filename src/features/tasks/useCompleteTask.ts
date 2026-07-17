@@ -4,21 +4,13 @@ import type { Task } from '../../types/task'
 import type { SubStep } from '../../types/goal'
 import type { UnlockedBadge } from '../../types/gamification'
 import { xpForOneOff, xpForRecurring, xpForAppointment, xpForSubStep } from '../gamification/xp'
-import { levelFromTotalXp } from '../gamification/level'
 import { evaluateBadges } from '../gamification/badges'
+import { awardXp } from '../gamification/awardXp'
 import { todayISODate } from '../../utils/dateUtils'
 
 export interface CompletionResult {
   xpAwarded: number
   newlyUnlockedBadges: UnlockedBadge[]
-}
-
-async function awardXp(delta: number) {
-  const stats = await db.userStats.get('singleton')
-  if (!stats) return
-  const xpTotal = Math.max(0, stats.xpTotal + delta)
-  const { level } = levelFromTotalXp(xpTotal)
-  await db.userStats.put({ ...stats, xpTotal, level })
 }
 
 export function useCompleteTask() {

@@ -5,6 +5,8 @@ QuestDay ist ein Aufgaben-Planer als installierbare Progressive Web App (PWA), o
 ## Features
 
 - **Vier Aufgabenarten**: einmalige Aufgaben, wiederkehrende Aufgaben (täglich/wöchentlich), Termine mit Uhrzeit, Langzeit-Ziele mit Teilschritten
+- **Wiederholende Ziele**: Ziele können täglich/wöchentlich/monatlich/alle X Tage wiederholt werden — Teilschritte setzen sich pro Zyklus automatisch zurück, verpasste Zyklen werden markiert, Zyklen zählen in Streak und Statistik
+- **Ziele bearbeiten & löschen**: Antippen einer Ziel-Karte öffnet ein Bearbeiten-Formular (Titel, Kategorie, Teilschritte, Wiederholung); Löschen erfolgt dort über einen Bestätigungsdialog
 - **Feste Kategorien**: Haushalt, Arbeit, Hobby, Sonstiges
 - **Erinnerungen** über die Notification API (lokal, siehe Einschränkungen unten)
 - **Gamification**: XP & Level, Tages-Streaks, Badges, freischaltbare Belohnungen (virtuelle Trophäen, Farbdesigns, selbst definierte echte Belohnungen)
@@ -45,7 +47,7 @@ Nie negativ – zu spät erledigte Aufgaben geben weniger, aber nie null XP:
 
 ## Streaks
 
-Ein Tag zählt als Streak-Tag, wenn alle an diesem Tag fälligen Aufgaben/Termine erledigt wurden. Tage ohne fällige Aufgaben zählen automatisch als erfüllt. Langzeit-Ziele fließen nicht in die Streak-Berechnung ein, da sie kein festes Tagesdatum haben.
+Ein Tag zählt als Streak-Tag, wenn alle an diesem Tag fälligen Aufgaben/Termine/wiederholenden Ziel-Zyklen erledigt wurden. Tage ohne Fälliges zählen automatisch als erfüllt. Einmalige Ziele fließen weiterhin nicht ein, da sie kein festes Tagesdatum haben.
 
 ## Erinnerungen – wichtige Einschränkung
 

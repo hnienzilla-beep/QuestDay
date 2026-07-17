@@ -35,9 +35,14 @@ export default function StatsView() {
 
   const data = useLiveQuery(async () => {
     const since = subDays(new Date(), range).toISOString()
-    const allCompletions = await db.taskCompletions.toArray()
-    const completions = allCompletions.filter((c) => c.completedAt >= since)
-    const stats = await db.userStats.get('singleton')
+    const [allTaskCompletions, allGoalCompletions, stats] = await Promise.all([
+      db.taskCompletions.toArray(),
+      db.goalCycleCompletions.toArray(),
+      db.userStats.get('singleton'),
+    ])
+    const taskCompletions = allTaskCompletions.filter((c) => c.completedAt >= since)
+    const goalCompletions = allGoalCompletions.filter((c) => c.completedAt >= since)
+    const completions = [...taskCompletions, ...goalCompletions]
 
     const byWeekday = new Array(7).fill(0)
     const byHourBucket = new Array(6).fill(0)

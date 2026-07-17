@@ -51,6 +51,12 @@
   color: #fff;
 }
 
+.btn-danger {
+  background: none;
+  color: var(--color-danger);
+  margin-top: 10px;
+}
+
 .btn-secondary {
   background: var(--color-surface-alt);
   color: var(--color-text);
