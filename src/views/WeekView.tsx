@@ -3,15 +3,19 @@ import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { de } from 'date-fns/locale'
 import './WeekView.css'
 import type { Task } from '../types/task'
+import type { Goal } from '../types/goal'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../features/tasks/taskRepository'
-import { isoDateOf } from '../utils/dateUtils'
+import { goalsDueOnDate, isGoalCycleDoneOnDate } from '../features/goals/goalRepository'
+import { isoDateOf, todayISODate } from '../utils/dateUtils'
 import { exportAppointmentsToIcs } from '../features/calendarExport/exportIcs'
 import { useCompleteTask } from '../features/tasks/useCompleteTask'
 import TaskListItem from '../features/tasks/TaskListItem'
+import GoalWeekItem from '../features/goals/GoalWeekItem'
 
 interface DayItems {
   date: Date
   items: { task: Task; done: boolean }[]
+  goalItems: { goal: Goal; done: boolean }[]
 }
 
 export default function WeekView() {
@@ -34,7 +38,13 @@ export default function WeekView() {
         const bTime = b.task.type === 'appointment' ? b.task.startTime : '99:99'
         return aTime.localeCompare(bTime) || a.task.title.localeCompare(b.task.title)
       })
-      results.push({ date, items })
+
+      const goalsDue = await goalsDueOnDate(dateStr)
+      const goalItems = await Promise.all(
+        goalsDue.map(async (goal) => ({ goal, done: await isGoalCycleDoneOnDate(goal.id, dateStr) })),
+      )
+
+      results.push({ date, items, goalItems })
     }
     return results
   }, [weekKey])
@@ -69,17 +79,27 @@ export default function WeekView() {
               <span className="week-day-name">{format(day.date, 'EEEE', { locale: de })}</span>
               <span className="week-day-date">{format(day.date, 'd. MMMM', { locale: de })}</span>
             </div>
-            {day.items.length === 0 ? (
+            {day.items.length === 0 && day.goalItems.length === 0 ? (
               <div className="week-day-empty">Nichts geplant</div>
             ) : (
-              day.items.map(({ task, done }) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  done={done}
-                  onToggle={() => (done ? uncompleteTask(task) : completeTask(task))}
-                />
-              ))
+              <>
+                {day.items.map(({ task, done }) => (
+                  <TaskListItem
+                    key={task.id}
+                    task={task}
+                    done={done}
+                    onToggle={() => (done ? uncompleteTask(task) : completeTask(task))}
+                  />
+                ))}
+                {day.goalItems.map(({ goal, done }) => (
+                  <GoalWeekItem
+                    key={goal.id}
+                    goal={goal}
+                    done={done}
+                    missed={!done && isoDateOf(day.date) < todayISODate()}
+                  />
+                ))}
+              </>
             )}
           </div>
         )

@@ -1,0 +1,48 @@
+.goal-week-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.goal-week-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-week-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.goal-week-item.done .goal-week-item-title {
+  color: var(--color-text-secondary);
+}
+
+.goal-week-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.goal-week-item-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goal-week-item-status.done {
+  color: var(--color-success);
+}
+
+.goal-week-item-status.missed {
+  color: var(--color-danger);
+}
+
+.goal-week-item-status.due {
+  color: var(--color-text-secondary);
+}
