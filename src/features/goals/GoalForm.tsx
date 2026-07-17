@@ -106,9 +106,22 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-header">
           <h2>{isEdit ? 'Ziel bearbeiten' : 'Neues Ziel'}</h2>
-          <button type="button" className="sheet-close" onClick={onClose}>
-            ✕
-          </button>
+          <div className="sheet-header-actions">
+            {isEdit && (
+              <button
+                type="button"
+                className="sheet-delete"
+                onClick={handleDelete}
+                aria-label="Ziel löschen"
+                title="Ziel löschen"
+              >
+                🗑️
+              </button>
+            )}
+            <button type="button" className="sheet-close" onClick={onClose}>
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="recurrence-toggle">
@@ -278,12 +291,6 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
           <button type="submit" className="btn btn-primary btn-block">
             {isEdit ? 'Änderungen speichern' : 'Ziel speichern'}
           </button>
-
-          {isEdit && (
-            <button type="button" className="btn btn-danger btn-block" onClick={handleDelete}>
-              Ziel löschen
-            </button>
-          )}
         </form>
       </div>
     </div>
