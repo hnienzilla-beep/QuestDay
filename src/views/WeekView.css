@@ -1,0 +1,37 @@
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.week-day {
+  margin-bottom: 22px;
+}
+
+.week-day-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.week-day-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.week-day-date {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.week-day-today .week-day-name {
+  color: var(--color-primary);
+}
+
+.week-day-empty {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 4px 0 0;
+}
