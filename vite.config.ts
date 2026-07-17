@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/questday/',
+  base: '/QuestDay/',
   plugins: [
     react(),
     VitePWA({
@@ -15,8 +15,8 @@ export default defineConfig({
         short_name: 'QuestDay',
         description: 'Aufgaben-Planer mit dezenter Gamification',
         lang: 'de',
-        start_url: '/questday/',
-        scope: '/questday/',
+        start_url: '/QuestDay/',
+        scope: '/QuestDay/',
         display: 'standalone',
         orientation: 'portrait',
         theme_color: '#4f6df5',

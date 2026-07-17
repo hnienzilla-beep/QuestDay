@@ -19,7 +19,7 @@ React + TypeScript + Vite, Dexie (IndexedDB), vite-plugin-pwa (Workbox), rechart
 
 ```bash
 npm install
-npm run dev       # http://localhost:5173/questday/
+npm run dev       # http://localhost:5173/QuestDay/
 npm run build     # Produktions-Build nach dist/
 npm run preview   # Produktions-Build lokal testen (Service Worker aktiv)
 ```
