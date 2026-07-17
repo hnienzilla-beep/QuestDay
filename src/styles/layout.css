@@ -51,12 +51,6 @@
   color: #fff;
 }
 
-.btn-danger {
-  background: none;
-  color: var(--color-danger);
-  margin-top: 10px;
-}
-
 .btn-secondary {
   background: var(--color-surface-alt);
   color: var(--color-text);
@@ -143,6 +137,21 @@
   color: var(--color-text-secondary);
   line-height: 1;
   padding: 4px;
+}
+
+.sheet-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheet-delete {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .category-toggle {
