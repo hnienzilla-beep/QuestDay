@@ -1,7 +1,7 @@
 import { useEffect, useState, Suspense, lazy } from 'react'
 import BottomNav from './components/BottomNav'
 import { ThemeProvider } from './features/theme/ThemeProvider'
-import { ensureSeedData } from './db/seed'
+import { ensureSeedData, ensureSetupTodos } from './db/seed'
 import { evaluateStreakOnAppOpen } from './features/gamification/streaks'
 import { evaluateBadges } from './features/gamification/badges'
 import { useReminderScheduler } from './features/notifications/useReminderScheduler'
@@ -20,6 +20,7 @@ function AppShell() {
   useEffect(() => {
     async function init() {
       await ensureSeedData()
+      await ensureSetupTodos()
       await evaluateStreakOnAppOpen()
       await evaluateBadges()
       setReady(true)
