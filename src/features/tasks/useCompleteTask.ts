@@ -7,6 +7,7 @@ import { xpForOneOff, xpForRecurring, xpForAppointment, xpForSubStep } from '../
 import { evaluateBadges } from '../gamification/badges'
 import { awardXp } from '../gamification/awardXp'
 import { todayISODate } from '../../utils/dateUtils'
+import { triggerAutoSync } from '../obsidianSync/autoSync'
 
 export interface CompletionResult {
   xpAwarded: number
@@ -37,6 +38,7 @@ export function useCompleteTask() {
 
     await awardXp(xp)
     const newlyUnlockedBadges = await evaluateBadges()
+    triggerAutoSync()
     return { xpAwarded: xp, newlyUnlockedBadges }
   }, [])
 
@@ -54,6 +56,7 @@ export function useCompleteTask() {
     if (task.type !== 'recurring') {
       await db.tasks.update(task.id, { completed: false, completedAt: null })
     }
+    triggerAutoSync()
   }, [])
 
   const completeSubStep = useCallback(
@@ -68,6 +71,7 @@ export function useCompleteTask() {
       }
       await awardXp(xp)
       const newlyUnlockedBadges = await evaluateBadges()
+      triggerAutoSync()
       return { xpAwarded: xp, newlyUnlockedBadges }
     },
     [],

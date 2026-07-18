@@ -9,6 +9,7 @@ import { addCustomReward, claimCustomReward } from '../features/gamification/cus
 import { THEMES } from '../features/theme/themes'
 import { useTheme } from '../features/theme/ThemeProvider'
 import XpBar from '../features/gamification/XpBar'
+import ObsidianSyncPanel from '../features/obsidianSync/ObsidianSyncPanel'
 
 export default function ProfileView() {
   const [showRewardForm, setShowRewardForm] = useState(false)
@@ -164,6 +165,8 @@ export default function ProfileView() {
           )
         })}
       </div>
+
+      <ObsidianSyncPanel />
 
       <div className="info-card">
         ℹ️ Erinnerungen funktionieren rein lokal auf deinem Gerät – ohne eigenen Server. Solange QuestDay

@@ -1,0 +1,45 @@
+.obsidian-sync-panel {
+  margin-top: 24px;
+}
+
+.obsidian-sync-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.obsidian-sync-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.obsidian-sync-fields input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #444);
+  background: var(--input-bg, transparent);
+  color: inherit;
+}
+
+.obsidian-sync-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.obsidian-sync-status {
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.obsidian-sync-status--success {
+  color: #4caf50;
+}
+
+.obsidian-sync-status--error {
+  color: #e05252;
+}
