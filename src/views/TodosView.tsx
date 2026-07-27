@@ -12,6 +12,7 @@ import TaskListItem from '../features/tasks/TaskListItem'
 import TaskForm from '../features/tasks/TaskForm'
 import QuickAddRow from '../features/tasks/QuickAddRow'
 import CategoryFilterChips, { type CategoryFilter } from '../features/categories/CategoryFilterChips'
+import { useCategoriesMap } from '../features/categories/useCategories'
 import { PlusIcon } from '../components/icons'
 
 type Bucket = 'today' | 'tomorrow' | 'later' | 'none' | 'recurring'
@@ -55,6 +56,7 @@ export default function TodosView({ onOpenSettings }: Props) {
   const [showCompleted, setShowCompleted] = useState(false)
   const [filter, setFilter] = useState<CategoryFilter>('all')
   const { completeTask, uncompleteTask } = useCompleteTask()
+  const categoriesMap = useCategoriesMap()
 
   const todayStr = todayISODate()
   const tomorrowStr = isoDateOf(addDays(new Date(), 1))
@@ -80,6 +82,33 @@ export default function TodosView({ onOpenSettings }: Props) {
 
   const totalCount = BUCKET_ORDER.reduce((n, b) => n + groups[b].length, 0)
 
+  const renderItem = ({ task, done }: Row) => (
+    <TaskListItem
+      key={task.id}
+      task={task}
+      done={done}
+      onToggle={() => (done ? uncompleteTask(task) : completeTask(task))}
+      onEdit={() => setEditingTask(task)}
+    />
+  )
+
+  // "Ohne Datum"-Aufgaben nach Kategorie gruppieren (alphabetisch, "Ohne Kategorie" zuletzt).
+  const groupByCategory = (rows: Row[]) => {
+    const byCat = new Map<string | null, Row[]>()
+    for (const row of rows) {
+      const arr = byCat.get(row.task.categoryId) ?? []
+      arr.push(row)
+      byCat.set(row.task.categoryId, arr)
+    }
+    return [...byCat.entries()]
+      .map(([catId, catRows]) => ({ catId, category: catId ? categoriesMap?.get(catId) : undefined, rows: catRows }))
+      .sort((a, b) => {
+        if (a.catId === null) return 1
+        if (b.catId === null) return -1
+        return (a.category?.name ?? '').localeCompare(b.category?.name ?? '')
+      })
+  }
+
   return (
     <div>
       <AppHeader onOpenSettings={onOpenSettings}>
@@ -101,15 +130,19 @@ export default function TodosView({ onOpenSettings }: Props) {
             <div className="section-header">
               <h2 className="section-title">{BUCKET_LABEL[bucket]}</h2>
             </div>
-            {rows.map(({ task, done }) => (
-              <TaskListItem
-                key={task.id}
-                task={task}
-                done={done}
-                onToggle={() => (done ? uncompleteTask(task) : completeTask(task))}
-                onEdit={() => setEditingTask(task)}
-              />
-            ))}
+            {bucket === 'none'
+              ? groupByCategory(rows).map((group) => (
+                  <div className="todos-cat-group" key={group.catId ?? 'none'}>
+                    <div className="todos-cat-head">
+                      {group.category && (
+                        <span className="todos-cat-dot" style={{ background: group.category.color }} />
+                      )}
+                      {group.category?.name ?? 'Ohne Kategorie'}
+                    </div>
+                    {group.rows.map(renderItem)}
+                  </div>
+                ))
+              : rows.map(renderItem)}
           </div>
         )
       })}

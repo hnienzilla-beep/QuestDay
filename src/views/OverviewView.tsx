@@ -154,7 +154,7 @@ export default function OverviewView({ onOpenSettings, onNavigate }: Props) {
       <div className="section-header">
         <h2 className="section-title">Woche planen</h2>
       </div>
-      <WeeklyPlanner />
+      <WeeklyPlanner onEditTask={setEditingTask} />
 
       <div className="section-header">
         <h2 className="section-title">Ziele</h2>

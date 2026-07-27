@@ -52,5 +52,12 @@ export function useCompleteTask() {
     triggerAutoSync()
   }, [])
 
-  return { completeTask, uncompleteTask, completeSubStep }
+  const uncompleteSubStep = useCallback(async (subStep: SubStep): Promise<void> => {
+    await db.subSteps.update(subStep.id, { completed: false, completedAt: null })
+    // Ziel ist nicht mehr abgeschlossen, wenn ein Teilschritt wieder offen ist.
+    await db.goals.update(subStep.goalId, { completedAt: null })
+    triggerAutoSync()
+  }, [])
+
+  return { completeTask, uncompleteTask, completeSubStep, uncompleteSubStep }
 }

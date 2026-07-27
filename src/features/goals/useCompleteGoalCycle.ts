@@ -37,5 +37,19 @@ export function useCompleteGoalCycle() {
     [],
   )
 
-  return { completeCycleSubStep }
+  const uncompleteCycleSubStep = useCallback(
+    async (subStep: SubStep, goal: Goal, cycleDueDate: string): Promise<void> => {
+      await db.subStepCycleCompletions
+        .where('subStepId')
+        .equals(subStep.id)
+        .and((r) => r.cycleDueDate === cycleDueDate)
+        .delete()
+      // Falls der Zyklus als abgeschlossen markiert war, diese Markierung entfernen.
+      await db.goalCycleCompletions.where('[goalId+cycleDueDate]').equals([goal.id, cycleDueDate]).delete()
+      triggerAutoSync()
+    },
+    [],
+  )
+
+  return { completeCycleSubStep, uncompleteCycleSubStep }
 }
