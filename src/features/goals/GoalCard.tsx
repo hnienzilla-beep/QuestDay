@@ -19,8 +19,8 @@ export default function GoalCard({ goal, onEdit }: Props) {
     () => db.subSteps.where('goalId').equals(goal.id).sortBy('order'),
     [goal.id],
   )
-  const { completeSubStep } = useCompleteTask()
-  const { completeCycleSubStep } = useCompleteGoalCycle()
+  const { completeSubStep, uncompleteSubStep } = useCompleteTask()
+  const { completeCycleSubStep, uncompleteCycleSubStep } = useCompleteGoalCycle()
 
   const isRecurring = goal.recurrence !== null
   const cycleStatus = useLiveQuery(
@@ -45,7 +45,15 @@ export default function GoalCard({ goal, onEdit }: Props) {
   const isDone = !isRecurring && goal.completedAt !== null
 
   const handleToggle = (step: SubStep) => {
-    if (isChecked(step)) return
+    if (isChecked(step)) {
+      // Abhaken rückgängig machen.
+      if (isRecurring && cycleStatus?.cycleDueDate) {
+        uncompleteCycleSubStep(step, goal, cycleStatus.cycleDueDate)
+      } else {
+        uncompleteSubStep(step)
+      }
+      return
+    }
     const isLast = doneCount + 1 === subSteps.length
     if (isRecurring && cycleStatus?.cycleDueDate) {
       completeCycleSubStep(step, goal, cycleStatus.cycleDueDate, subSteps.length, isLast)

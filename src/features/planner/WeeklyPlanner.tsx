@@ -44,7 +44,11 @@ function mondayIndex(d: Date): number {
   return (d.getDay() + 6) % 7
 }
 
-export default function WeeklyPlanner() {
+interface Props {
+  onEditTask?: (task: Task) => void
+}
+
+export default function WeeklyPlanner({ onEditTask }: Props) {
   const [weekOffset, setWeekOffset] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(() => mondayIndex(new Date()))
   const monday = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 })
@@ -123,11 +127,17 @@ export default function WeeklyPlanner() {
       </>
     )
     return draggable(task) ? (
-      <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className={`plan-chip draggable${done ? ' done' : ''}`}>
+      <DraggableItem
+        key={task.id}
+        id={task.id}
+        data={{ title: task.title }}
+        className={`plan-chip draggable${done ? ' done' : ''}`}
+        onClick={() => onEditTask?.(task)}
+      >
         {inner}
       </DraggableItem>
     ) : (
-      <div key={task.id} className={`plan-chip locked${done ? ' done' : ''}`}>
+      <div key={task.id} className={`plan-chip locked${done ? ' done' : ''}`} onClick={() => onEditTask?.(task)}>
         {inner}
       </div>
     )
@@ -198,7 +208,13 @@ export default function WeeklyPlanner() {
             </div>
             <div className="planner-tray-items">
               {group.tasks.map((task) => (
-                <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className="plan-chip draggable">
+                <DraggableItem
+                  key={task.id}
+                  id={task.id}
+                  data={{ title: task.title }}
+                  className="plan-chip draggable"
+                  onClick={() => onEditTask?.(task)}
+                >
                   <span className="plan-chip-title">{task.title}</span>
                 </DraggableItem>
               ))}
