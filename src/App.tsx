@@ -1,6 +1,7 @@
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import BottomNav from './components/BottomNav'
 import { ThemeProvider } from './features/theme/ThemeProvider'
+import { ensureSetupTodos } from './db/seed'
 import { useReminderScheduler } from './features/notifications/useReminderScheduler'
 import OverviewView from './views/OverviewView'
 import TodosView from './views/TodosView'
@@ -12,6 +13,10 @@ export type View = 'overview' | 'todos' | 'goals'
 function AppShell() {
   const [activeView, setActiveView] = useState<View>('overview')
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    ensureSetupTodos()
+  }, [])
 
   useReminderScheduler()
 
