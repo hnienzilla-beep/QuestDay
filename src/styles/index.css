@@ -58,7 +58,11 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  /* Hintergrund fixiert: kein Seiten-Bounce, kein Pinch-/Doppeltipp-Zoom – nur die Inhaltsliste scrollt. */
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 #root {

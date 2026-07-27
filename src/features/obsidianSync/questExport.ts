@@ -1,6 +1,7 @@
 import { db } from '../../db/db'
 import { startOfWeek, addDays, format } from 'date-fns'
 import { de } from 'date-fns/locale'
+import type { Task } from '../../types/task'
 import { todayISODate, isoDateOf } from '../../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../tasks/taskRepository'
 import { goalsDueOnDate, isGoalCycleDoneOnDate } from '../goals/goalRepository'
@@ -8,6 +9,13 @@ import { upsertFile } from './githubApi'
 
 function cleanTitle(title: string): string {
   return title.replace(/\r?\n/g, ' ').trim()
+}
+
+/** "HH:mm " als Präfix, wenn die Aufgabe eine Uhrzeit hat. */
+function timePrefix(task: Task): string {
+  if (task.type === 'appointment') return `${task.startTime} `
+  if ((task.type === 'oneoff' || task.type === 'recurring') && task.time) return `${task.time} `
+  return ''
 }
 
 async function categoryNames(): Promise<Map<string, string>> {
@@ -34,7 +42,7 @@ export async function syncQuestsHeute(): Promise<void> {
 
   const heuteLines =
     dueTasks.length > 0
-      ? dueTasks.map((task, i) => `- [${doneFlags[i] ? 'x' : ' '}] ${cleanTitle(task.title)}${catSuffix(task.categoryId, names)}`).join('\n')
+      ? dueTasks.map((task, i) => `- [${doneFlags[i] ? 'x' : ' '}] ${timePrefix(task)}${cleanTitle(task.title)}${catSuffix(task.categoryId, names)}`).join('\n')
       : '_Heute keine Aufgaben fällig._'
 
   // --- Ziele ---
@@ -71,7 +79,7 @@ export async function syncQuestsHeute(): Promise<void> {
     if (tasks.length === 0 && goalsDue.length === 0) {
       wochenLines.push('_Nichts geplant._')
     } else {
-      tasks.forEach((t, idx) => wochenLines.push(`- [${flags[idx] ? 'x' : ' '}] ${cleanTitle(t.title)}${catSuffix(t.categoryId, names)}`))
+      tasks.forEach((t, idx) => wochenLines.push(`- [${flags[idx] ? 'x' : ' '}] ${timePrefix(t)}${cleanTitle(t.title)}${catSuffix(t.categoryId, names)}`))
       goalsDue.forEach((g, idx) => wochenLines.push(`- [${goalFlags[idx] ? 'x' : ' '}] 🎯 ${cleanTitle(g.title)}${catSuffix(g.categoryId, names)}`))
     }
     wochenLines.push('')

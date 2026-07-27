@@ -1,7 +1,18 @@
 .type-toggle {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  margin-bottom: 18px;
+}
+
+.type-badge {
+  display: inline-block;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
   margin-bottom: 18px;
 }
 

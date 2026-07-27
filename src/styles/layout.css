@@ -2,6 +2,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 20px 16px calc(100px + env(safe-area-inset-bottom));
 }
 
@@ -103,6 +104,23 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+.field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-clear {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .field input,
