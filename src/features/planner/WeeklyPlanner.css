@@ -33,78 +33,117 @@
   color: var(--color-text-secondary);
 }
 
-.planner-strip {
+/* Wochenleiste: 7 Tage nebeneinander, passt immer in die Breite (kein Scroll). */
+.weekbar {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  overflow-y: visible;
-  touch-action: pan-x;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
-  scrollbar-width: none;
+  gap: 4px;
 }
 
-.planner-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.planner-day {
-  flex: 0 0 42%;
-  scroll-snap-align: start;
-  background: var(--color-surface);
+.weekbar-day {
+  flex: 1 1 0;
+  min-width: 0;
   border-radius: var(--radius-md);
-  padding: 8px;
-  min-height: 96px;
   border: 1px solid transparent;
 }
 
-.planner-day.is-today {
+.weekbar-day.is-today .weekbar-num {
+  color: var(--color-primary);
+}
+
+.weekbar-day.is-selected {
+  background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-.planner-day.plan-drop-hover,
-.planner-tray.plan-drop-hover {
+.weekbar-day.is-selected .weekbar-dow,
+.weekbar-day.is-selected .weekbar-num {
+  color: #fff;
+}
+
+.weekbar-day.plan-drop-hover {
   border-color: var(--color-primary);
   background: var(--color-primary-light);
 }
 
-.planner-day-head {
+.weekbar-day-btn {
+  width: 100%;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 6px;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 8px 2px;
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.planner-day-name {
-  font-size: 11px;
+.weekbar-dow {
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
-.planner-day-num {
-  font-size: 13px;
+.weekbar-num {
+  font-size: 15px;
   font-weight: 700;
 }
 
-.planner-day-items {
+.weekbar-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.weekbar-dot.on {
+  background: var(--color-primary);
+}
+
+.weekbar-day.is-selected .weekbar-dot.on {
+  background: #fff;
+}
+
+/* Ausgewählter Tag: Detailbereich + großes Ablageziel. */
+.planner-selected {
+  margin-top: 10px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border: 1px solid transparent;
+}
+
+.planner-selected.plan-drop-hover,
+.planner-tray.plan-drop-hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.planner-selected-head {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.planner-selected-items {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .planner-day-empty {
   color: var(--color-text-secondary);
-  font-size: 12px;
-  text-align: center;
-  padding: 8px 0;
+  font-size: 13px;
+  padding: 4px 0;
 }
 
 .plan-chip {
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-surface-alt);
   border-radius: var(--radius-sm);
   padding: 6px 8px;
@@ -134,6 +173,7 @@
 }
 
 .plan-chip-title {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

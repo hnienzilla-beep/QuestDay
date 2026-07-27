@@ -1,6 +1,7 @@
 .app-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 20px 16px calc(100px + env(safe-area-inset-bottom));

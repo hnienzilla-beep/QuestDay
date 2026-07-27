@@ -38,8 +38,14 @@ function chipTimePrefix(task: Task): string {
   return ''
 }
 
+/** Wochentag-Index Mo=0 … So=6 */
+function mondayIndex(d: Date): number {
+  return (d.getDay() + 6) % 7
+}
+
 export default function WeeklyPlanner() {
   const [weekOffset, setWeekOffset] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState(() => mondayIndex(new Date()))
   const monday = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 })
   const weekKey = isoDateOf(monday)
   const todayStr = todayISODate()
@@ -80,6 +86,29 @@ export default function WeeklyPlanner() {
     if (tasks.length > 0) exportTasksToIcs(tasks)
   }
 
+  const selected = days?.[selectedIndex]
+
+  const renderChip = ({ task, done }: PlanTask) => {
+    const inner = (
+      <>
+        <CategoryDot categoryId={task.categoryId} />
+        <span className="plan-chip-title">
+          {chipTimePrefix(task)}
+          {task.title}
+        </span>
+      </>
+    )
+    return draggable(task) ? (
+      <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className={`plan-chip draggable${done ? ' done' : ''}`}>
+        {inner}
+      </DraggableItem>
+    ) : (
+      <div key={task.id} className={`plan-chip locked${done ? ' done' : ''}`}>
+        {inner}
+      </div>
+    )
+  }
+
   return (
     <div className="planner">
       <div className="planner-head">
@@ -97,59 +126,47 @@ export default function WeeklyPlanner() {
         </button>
       </div>
 
-      <div className="planner-strip">
-        {days?.map((day) => {
+      <div className="weekbar">
+        {days?.map((day, i) => {
           const isToday = isSameDay(day.date, new Date())
+          const hasItems = day.tasks.length > 0 || day.goals.length > 0
           return (
-            <DroppableArea key={day.dateStr} id={`day:${day.dateStr}`} className={`planner-day${isToday ? ' is-today' : ''}`}>
-              <div className="planner-day-head">
-                <span className="planner-day-name">{WEEKDAY_LABEL[day.date.getDay()]}</span>
-                <span className="planner-day-num">{format(day.date, 'd')}</span>
-              </div>
-              <div className="planner-day-items">
-                {day.tasks.length === 0 && day.goals.length === 0 && <div className="planner-day-empty">–</div>}
-                {day.tasks.map(({ task, done }) => {
-                  const chip = (
-                    <>
-                      <CategoryDot categoryId={task.categoryId} />
-                      <span className="plan-chip-title">
-                        {chipTimePrefix(task)}
-                        {task.title}
-                      </span>
-                    </>
-                  )
-                  return draggable(task) ? (
-                    <DraggableItem
-                      key={task.id}
-                      id={task.id}
-                      data={{ title: task.title }}
-                      className={`plan-chip draggable${done ? ' done' : ''}`}
-                    >
-                      {chip}
-                    </DraggableItem>
-                  ) : (
-                    <div key={task.id} className={`plan-chip locked${done ? ' done' : ''}`}>
-                      {chip}
-                    </div>
-                  )
-                })}
-                {day.goals.map(({ goal, done, missed }) => (
-                  <div key={goal.id} className={`plan-chip goal${done ? ' done' : ''}${missed && !done ? ' missed' : ''}`}>
-                    <span className="plan-chip-title">🎯 {goal.title}</span>
-                  </div>
-                ))}
-              </div>
+            <DroppableArea
+              key={day.dateStr}
+              id={`day:${day.dateStr}`}
+              className={`weekbar-day${isToday ? ' is-today' : ''}${i === selectedIndex ? ' is-selected' : ''}`}
+            >
+              <button type="button" className="weekbar-day-btn" onClick={() => setSelectedIndex(i)}>
+                <span className="weekbar-dow">{WEEKDAY_LABEL[day.date.getDay()]}</span>
+                <span className="weekbar-num">{format(day.date, 'd')}</span>
+                <span className={`weekbar-dot${hasItems ? ' on' : ''}`} />
+              </button>
             </DroppableArea>
           )
         })}
       </div>
 
+      {selected && (
+        <DroppableArea id={`dayfull:${selected.dateStr}`} className="planner-selected">
+          <div className="planner-selected-head">{format(selected.date, 'EEEE, d. MMMM', { locale: de })}</div>
+          <div className="planner-selected-items">
+            {selected.tasks.length === 0 && selected.goals.length === 0 && (
+              <div className="planner-day-empty">Nichts geplant</div>
+            )}
+            {selected.tasks.map(renderChip)}
+            {selected.goals.map(({ goal, done, missed }) => (
+              <div key={goal.id} className={`plan-chip goal${done ? ' done' : ''}${missed && !done ? ' missed' : ''}`}>
+                <span className="plan-chip-title">🎯 {goal.title}</span>
+              </div>
+            ))}
+          </div>
+        </DroppableArea>
+      )}
+
       <DroppableArea id="tray" className="planner-tray">
         <div className="planner-tray-label">Ungeplant</div>
         <div className="planner-tray-items">
-          {unplanned && unplanned.length === 0 && (
-            <span className="planner-tray-empty">Keine ungeplanten Aufgaben</span>
-          )}
+          {unplanned && unplanned.length === 0 && <span className="planner-tray-empty">Keine ungeplanten Aufgaben</span>}
           {unplanned?.map((task) => (
             <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className="plan-chip draggable">
               <CategoryDot categoryId={task.categoryId} />
