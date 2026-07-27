@@ -11,6 +11,7 @@ import { goalsDueOnDate, isGoalCycleDoneOnDate } from '../goals/goalRepository'
 import { isoDateOf, todayISODate } from '../../utils/dateUtils'
 import { exportTasksToIcs } from '../calendarExport/exportIcs'
 import CategoryDot from '../../components/CategoryDot'
+import { useCategoriesMap } from '../categories/useCategories'
 import DraggableItem from '../dnd/DraggableItem'
 import DroppableArea from '../dnd/DroppableArea'
 import { ChevronLeftIcon, ChevronRightIcon, ExportIcon } from '../../components/icons'
@@ -80,6 +81,29 @@ export default function WeeklyPlanner() {
     () => db.tasks.filter((t) => t.type === 'oneoff' && t.dueDate === null && !t.completed).toArray(),
     [],
   )
+  const categoriesMap = useCategoriesMap()
+
+  // Ungeplante nach Kategorie gruppieren (Kategorien alphabetisch, "Ohne Kategorie" zuletzt).
+  const unplannedGroups = (() => {
+    if (!unplanned) return []
+    const byCat = new Map<string | null, Task[]>()
+    for (const t of unplanned) {
+      const arr = byCat.get(t.categoryId) ?? []
+      arr.push(t)
+      byCat.set(t.categoryId, arr)
+    }
+    return [...byCat.entries()]
+      .map(([catId, tasks]) => ({
+        catId,
+        category: catId ? categoriesMap?.get(catId) : undefined,
+        tasks: tasks.sort((a, b) => a.title.localeCompare(b.title)),
+      }))
+      .sort((a, b) => {
+        if (a.catId === null) return 1
+        if (b.catId === null) return -1
+        return (a.category?.name ?? '').localeCompare(b.category?.name ?? '')
+      })
+  })()
 
   const handleExport = () => {
     const tasks = (days ?? []).flatMap((d) => d.tasks.map((t) => t.task))
@@ -165,15 +189,22 @@ export default function WeeklyPlanner() {
 
       <DroppableArea id="tray" className="planner-tray">
         <div className="planner-tray-label">Ungeplant</div>
-        <div className="planner-tray-items">
-          {unplanned && unplanned.length === 0 && <span className="planner-tray-empty">Keine ungeplanten Aufgaben</span>}
-          {unplanned?.map((task) => (
-            <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className="plan-chip draggable">
-              <CategoryDot categoryId={task.categoryId} />
-              <span className="plan-chip-title">{task.title}</span>
-            </DraggableItem>
-          ))}
-        </div>
+        {unplannedGroups.length === 0 && <span className="planner-tray-empty">Keine ungeplanten Aufgaben</span>}
+        {unplannedGroups.map((group) => (
+          <div className="tray-group" key={group.catId ?? 'none'}>
+            <div className="tray-group-head">
+              {group.category && <span className="tray-group-dot" style={{ background: group.category.color }} />}
+              {group.category?.name ?? 'Ohne Kategorie'}
+            </div>
+            <div className="planner-tray-items">
+              {group.tasks.map((task) => (
+                <DraggableItem key={task.id} id={task.id} data={{ title: task.title }} className="plan-chip draggable">
+                  <span className="plan-chip-title">{task.title}</span>
+                </DraggableItem>
+              ))}
+            </div>
+          </div>
+        ))}
       </DroppableArea>
     </div>
   )
