@@ -1,14 +1,8 @@
 .category-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
   margin-bottom: 14px;
-  scrollbar-width: none;
-}
-
-.category-filter::-webkit-scrollbar {
-  display: none;
 }
 
 .category-filter button {

@@ -6,6 +6,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -71,6 +72,8 @@ export default function OverviewView({ onOpenSettings, onNavigate }: Props) {
     const taskId = String(e.active.id)
     if (overId.startsWith('day:')) {
       setTaskDate(taskId, overId.slice(4)).then(triggerAutoSync)
+    } else if (overId.startsWith('dayfull:')) {
+      setTaskDate(taskId, overId.slice(8)).then(triggerAutoSync)
     } else if (overId === 'tray') {
       setTaskDate(taskId, null).then(triggerAutoSync)
     }
@@ -99,7 +102,7 @@ export default function OverviewView({ onOpenSettings, onNavigate }: Props) {
   const percent = total > 0 ? (done / total) * 100 : 0
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <AppHeader onOpenSettings={onOpenSettings}>
         <div className="overview-greeting">{greeting()}</div>
         <div className="overview-date">{format(new Date(), 'EEEE, d. MMMM', { locale: de })}</div>
