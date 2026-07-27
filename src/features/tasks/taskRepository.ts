@@ -9,6 +9,7 @@ export async function addOneOffTask(input: {
   title: string
   categoryId: string | null
   dueDate: string | null
+  time?: string | null
   reminderTime: string | null
 }): Promise<OneOffTask> {
   const task: OneOffTask = {
@@ -17,6 +18,7 @@ export async function addOneOffTask(input: {
     title: input.title,
     categoryId: input.categoryId,
     dueDate: input.dueDate,
+    time: input.time ?? null,
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
@@ -32,6 +34,7 @@ export async function addRecurringTask(input: {
   categoryId: string | null
   frequency: 'daily' | 'weekly'
   weekdays: number[]
+  time?: string | null
   reminderTime: string | null
 }): Promise<RecurringTask> {
   const task: RecurringTask = {
@@ -41,6 +44,7 @@ export async function addRecurringTask(input: {
     categoryId: input.categoryId,
     frequency: input.frequency,
     weekdays: input.frequency === 'weekly' ? input.weekdays : [],
+    time: input.time ?? null,
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
@@ -77,6 +81,57 @@ export async function addAppointment(input: {
   }
   await db.tasks.add(task)
   return task
+}
+
+export async function updateOneOffTask(
+  id: string,
+  patch: {
+    title: string
+    categoryId: string | null
+    dueDate: string | null
+    time: string | null
+    reminderTime: string | null
+  },
+): Promise<void> {
+  await db.tasks.update(id, patch as Partial<OneOffTask>)
+}
+
+export async function updateRecurringTask(
+  id: string,
+  patch: {
+    title: string
+    categoryId: string | null
+    frequency: 'daily' | 'weekly'
+    weekdays: number[]
+    time: string | null
+    reminderTime: string | null
+  },
+): Promise<void> {
+  await db.tasks.update(id, {
+    ...patch,
+    weekdays: patch.frequency === 'weekly' ? patch.weekdays : [],
+  } as Partial<RecurringTask>)
+}
+
+export async function updateAppointment(
+  id: string,
+  patch: {
+    title: string
+    categoryId: string | null
+    date: string
+    startTime: string
+    endTime: string | null
+    location: string | null
+    reminderTime: string | null
+  },
+): Promise<void> {
+  await db.tasks.update(id, patch as Partial<Appointment>)
+}
+
+/** Sortierbare Uhrzeit einer Aufgabe (Termin: Startzeit; sonst optionale Uhrzeit). */
+export function taskSortTime(task: Task): string {
+  if (task.type === 'appointment') return task.startTime
+  return task.time ?? '99:99'
 }
 
 export async function deleteTask(id: string): Promise<void> {

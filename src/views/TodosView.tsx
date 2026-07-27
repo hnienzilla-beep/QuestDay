@@ -4,7 +4,7 @@ import { addDays } from 'date-fns'
 import './TodosView.css'
 import type { Task } from '../types/task'
 import { todayISODate, isoDateOf } from '../utils/dateUtils'
-import { isTaskDoneOnDate } from '../features/tasks/taskRepository'
+import { isTaskDoneOnDate, taskSortTime } from '../features/tasks/taskRepository'
 import { db } from '../db/db'
 import { useCompleteTask } from '../features/tasks/useCompleteTask'
 import AppHeader from '../components/AppHeader'
@@ -51,6 +51,7 @@ interface Props {
 
 export default function TodosView({ onOpenSettings }: Props) {
   const [showForm, setShowForm] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [filter, setFilter] = useState<CategoryFilter>('all')
   const { completeTask, uncompleteTask } = useCompleteTask()
@@ -69,9 +70,7 @@ export default function TodosView({ onOpenSettings }: Props) {
     }
     for (const b of BUCKET_ORDER) {
       map[b].sort((a, z) => {
-        const at = a.task.type === 'appointment' ? a.task.startTime : '99:99'
-        const zt = z.task.type === 'appointment' ? z.task.startTime : '99:99'
-        return at.localeCompare(zt) || a.task.title.localeCompare(z.task.title)
+        return taskSortTime(a.task).localeCompare(taskSortTime(z.task)) || a.task.title.localeCompare(z.task.title)
       })
     }
     return map
@@ -108,6 +107,7 @@ export default function TodosView({ onOpenSettings }: Props) {
                 task={task}
                 done={done}
                 onToggle={() => (done ? uncompleteTask(task) : completeTask(task))}
+                onEdit={() => setEditingTask(task)}
               />
             ))}
           </div>
@@ -125,6 +125,7 @@ export default function TodosView({ onOpenSettings }: Props) {
       </button>
 
       {showForm && <TaskForm onClose={() => setShowForm(false)} />}
+      {editingTask && <TaskForm task={editingTask} onClose={() => setEditingTask(null)} />}
     </div>
   )
 }

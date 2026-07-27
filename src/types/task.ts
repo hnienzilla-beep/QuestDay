@@ -16,6 +16,8 @@ interface BaseTask {
 export interface OneOffTask extends BaseTask {
   type: 'oneoff'
   dueDate: string | null
+  /** "HH:mm" optionale Uhrzeit für die Aufgabe. */
+  time: string | null
 }
 
 export interface RecurringTask extends BaseTask {
@@ -23,6 +25,8 @@ export interface RecurringTask extends BaseTask {
   frequency: 'daily' | 'weekly'
   /** 0 = Sonntag ... 6 = Samstag. Mehrere Wochentage möglich; nur bei frequency === 'weekly' maßgeblich. */
   weekdays: number[]
+  /** "HH:mm" optionale Uhrzeit für die Aufgabe. */
+  time: string | null
 }
 
 export interface Appointment extends BaseTask {

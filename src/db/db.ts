@@ -127,6 +127,22 @@ class ToDoDB extends Dexie {
             delete c.xpAwarded
           })
       })
+
+    // Version 4: optionale Uhrzeit (time) für einmalige & wiederkehrende Aufgaben.
+    this.version(4)
+      .stores({
+        tasks: 'id, type, categoryId, dueDate, date, completed, reminderTime',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('tasks')
+          .toCollection()
+          .modify((t) => {
+            if ((t.type === 'oneoff' || t.type === 'recurring') && t.time === undefined) {
+              t.time = null
+            }
+          })
+      })
   }
 }
 
