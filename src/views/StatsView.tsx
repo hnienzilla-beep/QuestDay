@@ -13,8 +13,6 @@ import {
 } from 'recharts'
 import './StatsView.css'
 import { db } from '../db/db'
-import { levelFromTotalXp } from '../features/gamification/level'
-import type { Category } from '../types/task'
 
 type Range = 7 | 30
 
@@ -22,23 +20,17 @@ const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
 const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 const WEEKDAY_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const HOUR_BUCKET_LABELS = ['0–4', '4–8', '8–12', '12–16', '16–20', '20–24']
-
-const CATEGORY_COLORS: Record<Category, string> = {
-  Haushalt: 'var(--cat-haushalt)',
-  Arbeit: 'var(--cat-arbeit)',
-  Hobby: 'var(--cat-hobby)',
-  Sonstiges: 'var(--cat-sonstiges)',
-}
+const NO_CATEGORY_COLOR = '#8a8a8a'
 
 export default function StatsView() {
   const [range, setRange] = useState<Range>(7)
 
   const data = useLiveQuery(async () => {
     const since = subDays(new Date(), range).toISOString()
-    const [allTaskCompletions, allGoalCompletions, stats] = await Promise.all([
+    const [allTaskCompletions, allGoalCompletions, categories] = await Promise.all([
       db.taskCompletions.toArray(),
       db.goalCycleCompletions.toArray(),
-      db.userStats.get('singleton'),
+      db.categories.toArray(),
     ])
     const taskCompletions = allTaskCompletions.filter((c) => c.completedAt >= since)
     const goalCompletions = allGoalCompletions.filter((c) => c.completedAt >= since)
@@ -46,13 +38,13 @@ export default function StatsView() {
 
     const byWeekday = new Array(7).fill(0)
     const byHourBucket = new Array(6).fill(0)
-    const byCategory: Record<Category, number> = { Haushalt: 0, Arbeit: 0, Hobby: 0, Sonstiges: 0 }
+    const byCategory = new Map<string | null, number>()
 
     for (const c of completions) {
       const d = new Date(c.completedAt)
       byWeekday[d.getDay()] += 1
       byHourBucket[Math.floor(d.getHours() / 4)] += 1
-      byCategory[c.category] += 1
+      byCategory.set(c.categoryId, (byCategory.get(c.categoryId) ?? 0) + 1)
     }
 
     const weekdayChart = WEEKDAY_ORDER.map((dayIndex, i) => ({
@@ -61,6 +53,18 @@ export default function StatsView() {
       fullLabel: WEEKDAY_FULL[dayIndex],
     }))
     const hourChart = HOUR_BUCKET_LABELS.map((label, i) => ({ hour: label, count: byHourBucket[i] }))
+
+    const catById = new Map(categories.map((c) => [c.id, c]))
+    const categoryChart = [...byCategory.entries()]
+      .map(([id, count]) => {
+        const cat = id ? catById.get(id) : undefined
+        return {
+          category: cat ? cat.name : 'Ohne Kategorie',
+          color: cat ? cat.color : NO_CATEGORY_COLOR,
+          count,
+        }
+      })
+      .sort((a, b) => b.count - a.count)
 
     let bestWeekday: string | null = null
     let bestWeekdayCount = 0
@@ -80,18 +84,14 @@ export default function StatsView() {
       }
     })
 
-    const categoryTotal = Object.values(byCategory).reduce((a, b) => a + b, 0)
-
     return {
       weekdayChart,
       hourChart,
-      byCategory,
-      categoryTotal,
+      categoryChart,
+      categoryTotal: completions.length,
       bestWeekday,
       bestHour,
       totalCompleted: completions.length,
-      level: stats ? levelFromTotalXp(stats.xpTotal).level : 1,
-      currentStreak: stats?.currentStreak ?? 0,
     }
   }, [range])
 
@@ -111,18 +111,10 @@ export default function StatsView() {
         </button>
       </div>
 
-      <div className="stat-tiles">
+      <div className="stat-tiles stat-tiles--single">
         <div className="stat-tile">
           <div className="stat-tile-value">{data.totalCompleted}</div>
           <div className="stat-tile-label">Erledigt</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile-value">{data.level}</div>
-          <div className="stat-tile-label">Level</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile-value">{data.currentStreak}</div>
-          <div className="stat-tile-label">Streak</div>
         </div>
       </div>
 
@@ -155,11 +147,11 @@ export default function StatsView() {
               formatter={(value) => [`${value} erledigt`, '']}
               labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''}
             />
-            <Bar dataKey="count" fill="var(--cat-arbeit)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="count" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
         {data.bestWeekday && data.totalCompleted > 0 && (
-          <div className="chart-callout">📈 Produktivster Tag: {data.bestWeekday}</div>
+          <div className="chart-callout">Produktivster Tag: {data.bestWeekday}</div>
         )}
       </div>
 
@@ -191,11 +183,11 @@ export default function StatsView() {
               }}
               formatter={(value) => [`${value} erledigt`, '']}
             />
-            <Bar dataKey="count" fill="var(--cat-arbeit)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="count" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
         {data.bestHour && data.totalCompleted > 0 && (
-          <div className="chart-callout">🕐 Produktivste Uhrzeit: {data.bestHour} Uhr</div>
+          <div className="chart-callout">Produktivste Uhrzeit: {data.bestHour} Uhr</div>
         )}
       </div>
 
@@ -204,43 +196,34 @@ export default function StatsView() {
         {data.categoryTotal === 0 ? (
           <div className="chart-callout">Noch keine Daten in diesem Zeitraum.</div>
         ) : (
-          <>
-            <ResponsiveContainer width="100%" height={Object.keys(data.byCategory).length * 34}>
-              <BarChart
-                data={(Object.entries(data.byCategory) as [Category, number][]).map(([category, count]) => ({
-                  category,
-                  count,
-                }))}
-                layout="vertical"
-                margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
-              >
-                <XAxis type="number" hide allowDecimals={false} />
-                <YAxis
-                  type="category"
-                  dataKey="category"
-                  tick={{ fill: 'var(--chart-ink-secondary)', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={80}
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--color-surface-alt)' }}
-                  contentStyle={{
-                    background: 'var(--color-bg)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [`${value} erledigt`, '']}
-                />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={18}>
-                  {(Object.keys(data.byCategory) as Category[]).map((cat) => (
-                    <Cell key={cat} fill={CATEGORY_COLORS[cat]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </>
+          <ResponsiveContainer width="100%" height={data.categoryChart.length * 34 + 8}>
+            <BarChart data={data.categoryChart} layout="vertical" margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+              <XAxis type="number" hide allowDecimals={false} />
+              <YAxis
+                type="category"
+                dataKey="category"
+                tick={{ fill: 'var(--chart-ink-secondary)', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                width={90}
+              />
+              <Tooltip
+                cursor={{ fill: 'var(--color-surface-alt)' }}
+                contentStyle={{
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+                formatter={(value) => [`${value} erledigt`, '']}
+              />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                {data.categoryChart.map((entry) => (
+                  <Cell key={entry.category} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>

@@ -1,0 +1,11 @@
+.todos-toggle-completed {
+  display: block;
+  margin: 20px auto 0;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  -webkit-tap-highlight-color: transparent;
+}

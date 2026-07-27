@@ -1,11 +1,7 @@
 import { useCallback } from 'react'
 import { db } from '../../db/db'
 import type { Goal, SubStep } from '../../types/goal'
-import type { UnlockedBadge } from '../../types/gamification'
-import { xpForSubStep } from '../gamification/xp'
-import { awardXp } from '../gamification/awardXp'
-import { evaluateBadges } from '../gamification/badges'
-import type { CompletionResult } from '../tasks/useCompleteTask'
+import { triggerAutoSync } from '../obsidianSync/autoSync'
 
 export function useCompleteGoalCycle() {
   const completeCycleSubStep = useCallback(
@@ -13,11 +9,10 @@ export function useCompleteGoalCycle() {
       subStep: SubStep,
       goal: Goal,
       cycleDueDate: string,
-      subStepCount: number,
+      _subStepCount: number,
       isLastStepOfCycle: boolean,
-    ): Promise<CompletionResult> => {
+    ): Promise<void> => {
       const now = new Date().toISOString()
-      const xp = xpForSubStep(isLastStepOfCycle)
 
       await db.subStepCycleCompletions.add({
         id: crypto.randomUUID(),
@@ -31,16 +26,13 @@ export function useCompleteGoalCycle() {
         await db.goalCycleCompletions.add({
           id: crypto.randomUUID(),
           goalId: goal.id,
-          category: goal.category,
+          categoryId: goal.categoryId,
           cycleDueDate,
           completedAt: now,
-          xpAwarded: subStepCount * 5 + 20,
         })
       }
 
-      await awardXp(xp)
-      const newlyUnlockedBadges: UnlockedBadge[] = await evaluateBadges()
-      return { xpAwarded: xp, newlyUnlockedBadges }
+      triggerAutoSync()
     },
     [],
   )

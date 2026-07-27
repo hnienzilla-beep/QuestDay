@@ -1,5 +1,5 @@
 import { db } from '../../db/db'
-import type { Task, OneOffTask, RecurringTask, Appointment, Category } from '../../types/task'
+import type { Task, OneOffTask, RecurringTask, Appointment } from '../../types/task'
 
 function newId(): string {
   return crypto.randomUUID()
@@ -7,7 +7,7 @@ function newId(): string {
 
 export async function addOneOffTask(input: {
   title: string
-  category: Category
+  categoryId: string | null
   dueDate: string | null
   reminderTime: string | null
 }): Promise<OneOffTask> {
@@ -15,7 +15,7 @@ export async function addOneOffTask(input: {
     id: newId(),
     type: 'oneoff',
     title: input.title,
-    category: input.category,
+    categoryId: input.categoryId,
     dueDate: input.dueDate,
     reminderTime: input.reminderTime,
     reminderFired: false,
@@ -29,18 +29,18 @@ export async function addOneOffTask(input: {
 
 export async function addRecurringTask(input: {
   title: string
-  category: Category
+  categoryId: string | null
   frequency: 'daily' | 'weekly'
-  weekday: number | null
+  weekdays: number[]
   reminderTime: string | null
 }): Promise<RecurringTask> {
   const task: RecurringTask = {
     id: newId(),
     type: 'recurring',
     title: input.title,
-    category: input.category,
+    categoryId: input.categoryId,
     frequency: input.frequency,
-    weekday: input.frequency === 'weekly' ? input.weekday : null,
+    weekdays: input.frequency === 'weekly' ? input.weekdays : [],
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
@@ -53,7 +53,7 @@ export async function addRecurringTask(input: {
 
 export async function addAppointment(input: {
   title: string
-  category: Category
+  categoryId: string | null
   date: string
   startTime: string
   endTime: string | null
@@ -64,7 +64,7 @@ export async function addAppointment(input: {
     id: newId(),
     type: 'appointment',
     title: input.title,
-    category: input.category,
+    categoryId: input.categoryId,
     date: input.date,
     startTime: input.startTime,
     endTime: input.endTime,
@@ -84,15 +84,26 @@ export async function deleteTask(id: string): Promise<void> {
   await db.taskCompletions.where('taskId').equals(id).delete()
 }
 
+/** Weist einer datierbaren Aufgabe (oneoff/appointment) einen Tag zu (oder entfernt ihn). Für Drag & Drop. */
+export async function setTaskDate(taskId: string, dateStr: string | null): Promise<void> {
+  const task = await db.tasks.get(taskId)
+  if (!task) return
+  if (task.type === 'oneoff') {
+    await db.tasks.update(taskId, { dueDate: dateStr } as Partial<OneOffTask>)
+  } else if (task.type === 'appointment' && dateStr) {
+    await db.tasks.update(taskId, { date: dateStr } as Partial<Appointment>)
+  }
+}
+
 export async function allTasks(): Promise<Task[]> {
   return db.tasks.toArray()
 }
 
 function isDueOnDate(task: Task, dateStr: string, weekday: number): boolean {
-  if (task.type === 'oneoff') return task.dueDate === dateStr || task.dueDate === null
+  if (task.type === 'oneoff') return task.dueDate === dateStr
   if (task.type === 'appointment') return task.date === dateStr
   if (task.frequency === 'daily') return true
-  return task.weekday === weekday
+  return task.weekdays.includes(weekday)
 }
 
 export async function tasksDueOnDate(dateStr: string): Promise<Task[]> {

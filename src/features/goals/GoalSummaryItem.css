@@ -1,0 +1,41 @@
+.goal-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.goal-summary-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.goal-summary-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal-summary-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.goal-summary-missed {
+  color: var(--color-danger);
+  font-weight: 600;
+}

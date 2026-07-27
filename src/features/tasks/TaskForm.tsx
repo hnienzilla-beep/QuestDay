@@ -1,24 +1,25 @@
 import { useState } from 'react'
 import './TaskForm.css'
-import { CATEGORIES, type Category, type TaskType } from '../../types/task'
+import type { TaskType } from '../../types/task'
 import { addOneOffTask, addRecurringTask, addAppointment } from './taskRepository'
+import CategoryPicker from '../categories/CategoryPicker'
+import WeekdayPicker from '../../components/WeekdayPicker'
+import { CloseIcon } from '../../components/icons'
 
 interface Props {
   onClose: () => void
   defaultDate?: string
 }
 
-const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
-
 export default function TaskForm({ onClose, defaultDate }: Props) {
   const [taskType, setTaskType] = useState<TaskType>('oneoff')
   const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<Category>('Sonstiges')
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const [reminderTime, setReminderTime] = useState('')
 
   const [dueDate, setDueDate] = useState(defaultDate ?? '')
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily')
-  const [weekday, setWeekday] = useState(1)
+  const [weekdays, setWeekdays] = useState<number[]>([1])
   const [apptDate, setApptDate] = useState(defaultDate ?? '')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -33,23 +34,24 @@ export default function TaskForm({ onClose, defaultDate }: Props) {
     if (taskType === 'oneoff') {
       await addOneOffTask({
         title: title.trim(),
-        category,
+        categoryId,
         dueDate: dueDate || null,
         reminderTime: reminder,
       })
     } else if (taskType === 'recurring') {
+      if (frequency === 'weekly' && weekdays.length === 0) return
       await addRecurringTask({
         title: title.trim(),
-        category,
+        categoryId,
         frequency,
-        weekday: frequency === 'weekly' ? weekday : null,
+        weekdays: frequency === 'weekly' ? weekdays : [],
         reminderTime: reminder,
       })
     } else {
       if (!apptDate || !startTime) return
       await addAppointment({
         title: title.trim(),
-        category,
+        categoryId,
         date: apptDate,
         startTime,
         endTime: endTime || null,
@@ -66,8 +68,8 @@ export default function TaskForm({ onClose, defaultDate }: Props) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-header">
           <h2>Neue Aufgabe</h2>
-          <button type="button" className="sheet-close" onClick={onClose}>
-            ✕
+          <button type="button" className="sheet-close" onClick={onClose} aria-label="Schließen">
+            <CloseIcon />
           </button>
         </div>
 
@@ -109,19 +111,8 @@ export default function TaskForm({ onClose, defaultDate }: Props) {
           </div>
 
           <div className="field">
-            <label>Kategorie</label>
-            <div className="category-toggle">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={category === c ? 'active' : ''}
-                  onClick={() => setCategory(c)}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+            <label>Kategorie (optional)</label>
+            <CategoryPicker value={categoryId} onChange={setCategoryId} />
           </div>
 
           {taskType === 'oneoff' && (
@@ -153,24 +144,14 @@ export default function TaskForm({ onClose, defaultDate }: Props) {
                     className={frequency === 'weekly' ? 'active' : ''}
                     onClick={() => setFrequency('weekly')}
                   >
-                    Wöchentlich
+                    An Wochentagen
                   </button>
                 </div>
               </div>
               {frequency === 'weekly' && (
                 <div className="field">
-                  <label htmlFor="weekday">Wochentag</label>
-                  <select
-                    id="weekday"
-                    value={weekday}
-                    onChange={(e) => setWeekday(Number(e.target.value))}
-                  >
-                    {WEEKDAYS.map((day, index) => (
-                      <option key={day} value={index}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
+                  <label>Wochentage</label>
+                  <WeekdayPicker value={weekdays} onChange={setWeekdays} />
                 </div>
               )}
             </>

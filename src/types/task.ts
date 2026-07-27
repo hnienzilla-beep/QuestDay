@@ -1,13 +1,10 @@
-export type Category = 'Haushalt' | 'Arbeit' | 'Hobby' | 'Sonstiges'
-
-export const CATEGORIES: Category[] = ['Haushalt', 'Arbeit', 'Hobby', 'Sonstiges']
-
 export type TaskType = 'oneoff' | 'recurring' | 'appointment'
 
 interface BaseTask {
   id: string
   title: string
-  category: Category
+  /** null = keine Kategorie (Kategorien sind optional). */
+  categoryId: string | null
   createdAt: string
   /** Nur für oneoff/appointment maßgeblich. Recurring-Tasks werden über taskCompletions ausgewertet. */
   completed: boolean
@@ -24,8 +21,8 @@ export interface OneOffTask extends BaseTask {
 export interface RecurringTask extends BaseTask {
   type: 'recurring'
   frequency: 'daily' | 'weekly'
-  /** 0 = Sonntag ... 6 = Samstag, erforderlich wenn frequency === 'weekly' */
-  weekday: number | null
+  /** 0 = Sonntag ... 6 = Samstag. Mehrere Wochentage möglich; nur bei frequency === 'weekly' maßgeblich. */
+  weekdays: number[]
 }
 
 export interface Appointment extends BaseTask {
@@ -42,8 +39,8 @@ export interface TaskCompletion {
   id: string
   taskId: string
   taskType: TaskType
-  category: Category
+  /** Denormalisiert für die Statistik; überlebt das Löschen einer Kategorie. */
+  categoryId: string | null
   completedDate: string
   completedAt: string
-  xpAwarded: number
 }

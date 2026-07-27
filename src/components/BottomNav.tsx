@@ -1,11 +1,10 @@
 import './BottomNav.css'
 import type { View } from '../App'
 
-const ITEMS: { view: View; label: string; icon: string }[] = [
-  { view: 'home', label: 'Heute', icon: '🏠' },
-  { view: 'week', label: 'Woche', icon: '📅' },
-  { view: 'stats', label: 'Statistik', icon: '📊' },
-  { view: 'profile', label: 'Profil', icon: '👤' },
+const ITEMS: { view: View; label: string }[] = [
+  { view: 'overview', label: 'Übersicht' },
+  { view: 'todos', label: 'ToDos' },
+  { view: 'goals', label: 'Ziele' },
 ]
 
 interface Props {
@@ -23,8 +22,7 @@ export default function BottomNav({ active, onChange }: Props) {
           className={`bottom-nav-item${active === item.view ? ' active' : ''}`}
           onClick={() => onChange(item.view)}
         >
-          <span className="icon">{item.icon}</span>
-          <span>{item.label}</span>
+          {item.label}
         </button>
       ))}
     </nav>

@@ -21,6 +21,10 @@
   color: #fff;
 }
 
+.stat-tiles--single {
+  grid-template-columns: 1fr;
+}
+
 .chart-card {
   background: var(--color-surface);
   border-radius: var(--radius-md);

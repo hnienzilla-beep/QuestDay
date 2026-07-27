@@ -1,46 +1,95 @@
 import { db } from '../../db/db'
-import { todayISODate } from '../../utils/dateUtils'
+import { startOfWeek, addDays, format } from 'date-fns'
+import { de } from 'date-fns/locale'
+import { todayISODate, isoDateOf } from '../../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../tasks/taskRepository'
+import { goalsDueOnDate, isGoalCycleDoneOnDate } from '../goals/goalRepository'
 import { upsertFile } from './githubApi'
 
 function cleanTitle(title: string): string {
   return title.replace(/\r?\n/g, ' ').trim()
 }
 
-/** Exportiert die heutigen Quests (erledigt + offen) als Markdown-Checkliste ins Vault-Repo. */
+async function categoryNames(): Promise<Map<string, string>> {
+  const cats = await db.categories.toArray()
+  return new Map(cats.map((c) => [c.id, c.name]))
+}
+
+function catSuffix(categoryId: string | null, names: Map<string, string>): string {
+  if (!categoryId) return ''
+  const name = names.get(categoryId)
+  return name ? ` (${name})` : ''
+}
+
+/** Exportiert Heute-Aufgaben, Ziele und den Wochenplan als Markdown ins Vault-Repo. */
 export async function syncQuestsHeute(): Promise<void> {
   const dateStr = todayISODate()
+  const names = await categoryNames()
+
+  // --- Heute ---
   const dueTasks = await tasksDueOnDate(dateStr)
   const doneFlags = await Promise.all(dueTasks.map((t) => isTaskDoneOnDate(t, dateStr)))
-
   const erledigt = doneFlags.filter(Boolean).length
   const offen = dueTasks.length - erledigt
 
-  const [todaysCompletions, stats] = await Promise.all([
-    db.taskCompletions.where('completedDate').equals(dateStr).toArray(),
-    db.userStats.get('singleton'),
-  ])
-  const xpHeute = todaysCompletions.reduce((sum, c) => sum + c.xpAwarded, 0)
+  const heuteLines =
+    dueTasks.length > 0
+      ? dueTasks.map((task, i) => `- [${doneFlags[i] ? 'x' : ' '}] ${cleanTitle(task.title)}${catSuffix(task.categoryId, names)}`).join('\n')
+      : '_Heute keine Aufgaben fällig._'
 
-  const frontmatter = [
-    '---',
-    'typ: quests',
-    `datum: ${dateStr}`,
-    `erledigt: ${erledigt}`,
-    `offen: ${offen}`,
-    `xp_heute: ${xpHeute}`,
-    `xp_gesamt: ${stats?.xpTotal ?? 0}`,
-    `level: ${stats?.level ?? 1}`,
-    `streak: ${stats?.currentStreak ?? 0}`,
-    '---',
+  // --- Ziele ---
+  const goals = await db.goals.toArray()
+  const zieleLines: string[] = []
+  for (const goal of goals) {
+    const steps = await db.subSteps.where('goalId').equals(goal.id).toArray()
+    const isRecurring = goal.recurrence !== null
+    let doneCount: number
+    if (isRecurring) {
+      const rows = await db.subStepCycleCompletions.where('goalId').equals(goal.id).and((r) => r.cycleDueDate === dateStr).toArray()
+      const doneIds = new Set(rows.map((r) => r.subStepId))
+      doneCount = steps.filter((s) => doneIds.has(s.id)).length
+    } else {
+      doneCount = steps.filter((s) => s.completed).length
+    }
+    const suffix = isRecurring ? ' 🔁' : ''
+    zieleLines.push(`- ${cleanTitle(goal.title)} — ${doneCount}/${steps.length}${catSuffix(goal.categoryId, names)}${suffix}`)
+  }
+  const zieleBlock = zieleLines.length > 0 ? zieleLines.join('\n') : '_Noch keine Ziele._'
+
+  // --- Wochenplan (Mo–So) ---
+  const monday = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const wochenLines: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(monday, i)
+    const dStr = isoDateOf(date)
+    const tasks = await tasksDueOnDate(dStr)
+    const flags = await Promise.all(tasks.map((t) => isTaskDoneOnDate(t, dStr)))
+    const goalsDue = await goalsDueOnDate(dStr)
+    const goalFlags = await Promise.all(goalsDue.map((g) => isGoalCycleDoneOnDate(g.id, dStr)))
+
+    wochenLines.push(`### ${format(date, 'EEEE, d. MMMM', { locale: de })}`)
+    if (tasks.length === 0 && goalsDue.length === 0) {
+      wochenLines.push('_Nichts geplant._')
+    } else {
+      tasks.forEach((t, idx) => wochenLines.push(`- [${flags[idx] ? 'x' : ' '}] ${cleanTitle(t.title)}${catSuffix(t.categoryId, names)}`))
+      goalsDue.forEach((g, idx) => wochenLines.push(`- [${goalFlags[idx] ? 'x' : ' '}] 🎯 ${cleanTitle(g.title)}${catSuffix(g.categoryId, names)}`))
+    }
+    wochenLines.push('')
+  }
+
+  const frontmatter = ['---', 'typ: todo', `datum: ${dateStr}`, `erledigt: ${erledigt}`, `offen: ${offen}`, '---', ''].join('\n')
+
+  const body = [
+    '## Heute',
+    heuteLines,
+    '',
+    '## Ziele',
+    zieleBlock,
+    '',
+    '## Wochenplan',
+    wochenLines.join('\n').trimEnd(),
     '',
   ].join('\n')
 
-  const lines = dueTasks.map((task, i) => {
-    const box = doneFlags[i] ? '[x]' : '[ ]'
-    return `- ${box} ${cleanTitle(task.title)} (${task.category})`
-  })
-  const body = lines.length > 0 ? lines.join('\n') + '\n' : '_Heute keine Aufgaben fällig._\n'
-
-  await upsertFile(`10-Quests/${dateStr}.md`, frontmatter + body, `Sync ${dateStr}: Quests`)
+  await upsertFile(`10-Quests/${dateStr}.md`, frontmatter + body, `Sync ${dateStr}: ToDo`)
 }

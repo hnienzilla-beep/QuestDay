@@ -13,7 +13,7 @@ export function isGoalDueOnDate(recurrence: GoalRecurrence, dateStr: string): bo
     case 'daily':
       return true
     case 'weekly':
-      return getDay(parseISO(dateStr)) === recurrence.weekday
+      return recurrence.weekdays.includes(getDay(parseISO(dateStr)))
     case 'monthly':
       return getDate(parseISO(dateStr)) === effectiveMonthlyDay(dateStr, recurrence.dayOfMonth!)
     case 'custom': {

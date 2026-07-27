@@ -30,6 +30,31 @@
   margin-top: 0;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 24px 0 10px;
+}
+
+.section-header:first-of-type {
+  margin-top: 0;
+}
+
+.section-header .section-title {
+  margin: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-md);

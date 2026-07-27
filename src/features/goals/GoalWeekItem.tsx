@@ -1,6 +1,6 @@
 import './GoalWeekItem.css'
 import type { Goal } from '../../types/goal'
-import CategoryBadge from '../../components/CategoryBadge'
+import CategoryDot from '../../components/CategoryDot'
 
 interface Props {
   goal: Goal
@@ -15,9 +15,9 @@ export default function GoalWeekItem({ goal, done, missed }: Props) {
   return (
     <div className={`goal-week-item${done ? ' done' : ''}`}>
       <div className="goal-week-item-body">
-        <div className="goal-week-item-title">🎯 {goal.title}</div>
+        <div className="goal-week-item-title">{goal.title}</div>
         <div className="goal-week-item-meta">
-          <CategoryBadge category={goal.category} />
+          <CategoryDot categoryId={goal.categoryId} />
           <span className={`goal-week-item-status ${statusClass}`}>{statusLabel}</span>
         </div>
       </div>
