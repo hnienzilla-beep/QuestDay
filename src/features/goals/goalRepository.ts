@@ -1,6 +1,5 @@
 import { db } from '../../db/db'
 import type { Goal, SubStep, GoalRecurrence, RecurrenceFrequency } from '../../types/goal'
-import type { Category } from '../../types/task'
 import { isGoalDueOnDate, mostRecentDueDateOnOrBefore, isRecurrenceActiveOnDate } from './goalCycles'
 import { todayISODate } from '../../utils/dateUtils'
 
@@ -10,7 +9,7 @@ function newId(): string {
 
 export interface RecurrenceInput {
   frequency: RecurrenceFrequency
-  weekday: number | null
+  weekdays: number[]
   dayOfMonth: number | null
   intervalDays: number | null
   reminderTime: string | null
@@ -20,7 +19,7 @@ function buildRecurrence(input: RecurrenceInput | null, anchorDate: string): Goa
   if (!input) return null
   return {
     frequency: input.frequency,
-    weekday: input.frequency === 'weekly' ? input.weekday : null,
+    weekdays: input.frequency === 'weekly' ? input.weekdays : [],
     dayOfMonth: input.frequency === 'monthly' ? input.dayOfMonth : null,
     intervalDays: input.frequency === 'custom' ? input.intervalDays : null,
     anchorDate,
@@ -33,7 +32,7 @@ function buildRecurrence(input: RecurrenceInput | null, anchorDate: string): Goa
 export async function addGoal(input: {
   title: string
   target: string
-  category: Category
+  categoryId: string | null
   targetDate: string | null
   subStepTitles: string[]
   recurrence: RecurrenceInput | null
@@ -42,7 +41,7 @@ export async function addGoal(input: {
     id: newId(),
     title: input.title,
     target: input.target,
-    category: input.category,
+    categoryId: input.categoryId,
     createdAt: new Date().toISOString(),
     targetDate: input.targetDate,
     completedAt: null,
@@ -67,7 +66,7 @@ export async function addGoal(input: {
 export interface GoalUpdateInput {
   title: string
   target: string
-  category: Category
+  categoryId: string | null
   targetDate: string | null
   recurrence: RecurrenceInput | null
 }
@@ -93,7 +92,7 @@ export async function updateGoal(id: string, patch: GoalUpdateInput, subStepChan
   await db.goals.update(id, {
     title: patch.title,
     target: patch.target,
-    category: patch.category,
+    categoryId: patch.categoryId,
     targetDate: patch.targetDate,
     recurrence,
   })

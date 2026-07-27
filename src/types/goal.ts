@@ -1,5 +1,3 @@
-import type { Category } from './task'
-
 export interface SubStep {
   id: string
   goalId: string
@@ -14,8 +12,8 @@ export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'custom'
 
 export interface GoalRecurrence {
   frequency: RecurrenceFrequency
-  /** 0 = Sonntag ... 6 = Samstag, erforderlich wenn frequency === 'weekly' */
-  weekday: number | null
+  /** 0 = Sonntag ... 6 = Samstag. Mehrere Wochentage möglich; nur bei frequency === 'weekly' maßgeblich. */
+  weekdays: number[]
   /** 1-31, erforderlich wenn frequency === 'monthly' (wird auf Monatslänge geclampt) */
   dayOfMonth: number | null
   /** >=1, erforderlich wenn frequency === 'custom' */
@@ -33,7 +31,8 @@ export interface Goal {
   id: string
   title: string
   target: string
-  category: Category
+  /** null = keine Kategorie (Kategorien sind optional). */
+  categoryId: string | null
   createdAt: string
   targetDate: string | null
   /** Nur für einmalige Ziele (recurrence === null) gesetzt. */
@@ -45,11 +44,11 @@ export interface Goal {
 export interface GoalCycleCompletion {
   id: string
   goalId: string
-  category: Category
+  /** Denormalisiert für die Statistik; überlebt das Löschen einer Kategorie. */
+  categoryId: string | null
   /** yyyy-MM-dd, Identität des Zyklus */
   cycleDueDate: string
   completedAt: string
-  xpAwarded: number
 }
 
 export interface SubStepCycleCompletion {

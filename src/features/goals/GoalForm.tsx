@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import './GoalForm.css'
-import { CATEGORIES, type Category } from '../../types/task'
 import type { Goal, RecurrenceFrequency, SubStep } from '../../types/goal'
 import { addGoal, updateGoal, deleteGoal } from './goalRepository'
+import CategoryPicker from '../categories/CategoryPicker'
+import WeekdayPicker from '../../components/WeekdayPicker'
+import { CloseIcon, TrashIcon } from '../../components/icons'
 
 interface Props {
   onClose: () => void
@@ -15,14 +17,12 @@ interface SubStepRow {
   title: string
 }
 
-const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
-
 export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
   const isEdit = goal !== undefined
 
   const [title, setTitle] = useState(goal?.title ?? '')
   const [target, setTarget] = useState(goal?.target ?? '')
-  const [category, setCategory] = useState<Category>(goal?.category ?? 'Sonstiges')
+  const [categoryId, setCategoryId] = useState<string | null>(goal?.categoryId ?? null)
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? '')
 
   const [subStepRows, setSubStepRows] = useState<SubStepRow[]>(
@@ -35,7 +35,7 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
   const [recurrenceType, setRecurrenceType] = useState<'none' | RecurrenceFrequency>(
     goal?.recurrence?.frequency ?? 'none',
   )
-  const [weekday, setWeekday] = useState(goal?.recurrence?.weekday ?? 1)
+  const [weekdays, setWeekdays] = useState<number[]>(goal?.recurrence?.weekdays ?? [1])
   const [dayOfMonth, setDayOfMonth] = useState(goal?.recurrence?.dayOfMonth ?? 1)
   const [intervalDays, setIntervalDays] = useState(goal?.recurrence?.intervalDays ?? 2)
   const [reminderTime, setReminderTime] = useState(goal?.recurrence?.reminderTime ?? '')
@@ -64,13 +64,14 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
+    if (recurrenceType === 'weekly' && weekdays.length === 0) return
 
     const recurrence =
       recurrenceType === 'none'
         ? null
         : {
             frequency: recurrenceType,
-            weekday: recurrenceType === 'weekly' ? weekday : null,
+            weekdays: recurrenceType === 'weekly' ? weekdays : [],
             dayOfMonth: recurrenceType === 'monthly' ? dayOfMonth : null,
             intervalDays: recurrenceType === 'custom' ? intervalDays : null,
             reminderTime: reminderTime || null,
@@ -84,14 +85,14 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
 
       await updateGoal(
         goal.id,
-        { title: title.trim(), target: target.trim(), category, targetDate: targetDate || null, recurrence },
+        { title: title.trim(), target: target.trim(), categoryId, targetDate: targetDate || null, recurrence },
         { updated, added, removedIds },
       )
     } else {
       await addGoal({
         title: title.trim(),
         target: target.trim(),
-        category,
+        categoryId,
         targetDate: targetDate || null,
         subStepTitles: subStepRows.map((r) => r.title.trim()).filter((s) => s.length > 0),
         recurrence,
@@ -115,11 +116,11 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
                 aria-label="Ziel löschen"
                 title="Ziel löschen"
               >
-                🗑️
+                <TrashIcon size={18} />
               </button>
             )}
-            <button type="button" className="sheet-close" onClick={onClose}>
-              ✕
+            <button type="button" className="sheet-close" onClick={onClose} aria-label="Schließen">
+              <CloseIcon />
             </button>
           </div>
         </div>
@@ -144,7 +145,7 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
             className={recurrenceType === 'weekly' ? 'active' : ''}
             onClick={() => setRecurrenceType('weekly')}
           >
-            Wöchentlich
+            Wochentage
           </button>
           <button
             type="button"
@@ -164,14 +165,8 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
 
         {recurrenceType === 'weekly' && (
           <div className="field">
-            <label htmlFor="goalWeekday">Wochentag</label>
-            <select id="goalWeekday" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
-              {WEEKDAYS.map((day, index) => (
-                <option key={day} value={index}>
-                  {day}
-                </option>
-              ))}
-            </select>
+            <label>Wochentage</label>
+            <WeekdayPicker value={weekdays} onChange={setWeekdays} />
           </div>
         )}
 
@@ -238,19 +233,8 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
           </div>
 
           <div className="field">
-            <label>Kategorie</label>
-            <div className="category-toggle">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={category === c ? 'active' : ''}
-                  onClick={() => setCategory(c)}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+            <label>Kategorie (optional)</label>
+            <CategoryPicker value={categoryId} onChange={setCategoryId} />
           </div>
 
           <div className="field">
@@ -277,8 +261,9 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
                     type="button"
                     className="substep-remove"
                     onClick={() => removeSubStepField(index)}
+                    aria-label="Schritt entfernen"
                   >
-                    ✕
+                    <CloseIcon size={16} />
                   </button>
                 )}
               </div>

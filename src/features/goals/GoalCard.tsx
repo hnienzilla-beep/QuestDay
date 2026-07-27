@@ -2,8 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import './GoalCard.css'
 import { db } from '../../db/db'
 import type { Goal, SubStep } from '../../types/goal'
-import CategoryBadge from '../../components/CategoryBadge'
-import ProgressBar from '../../components/ProgressBar'
+import CategoryDot from '../../components/CategoryDot'
+import ProgressRing from '../../components/ProgressRing'
 import CheckOffAnimation from '../../components/CheckOffAnimation'
 import { useCompleteTask } from '../tasks/useCompleteTask'
 import { useCompleteGoalCycle } from './useCompleteGoalCycle'
@@ -57,20 +57,19 @@ export default function GoalCard({ goal, onEdit }: Props) {
   return (
     <div className={`goal-card${isDone ? ' done' : ''}`} onClick={() => onEdit(goal, subSteps)}>
       <div className="goal-card-top">
-        <span className="goal-card-title">
-          {isDone ? '🏆 ' : ''}
-          {goal.title}
-        </span>
-        <CategoryBadge category={goal.category} />
+        <div className="goal-card-heading">
+          <span className="goal-card-title">{goal.title}</span>
+          <CategoryDot categoryId={goal.categoryId} />
+        </div>
+        <ProgressRing percent={percent} size={46} />
       </div>
       {goal.target && <div className="goal-card-target">{goal.target}</div>}
 
-      <ProgressBar percent={percent} />
       <div className="goal-card-progress-label">
         <span>
           {doneCount} / {subSteps.length} Schritte
         </span>
-        {isDone && <span>Abgeschlossen 🎉</span>}
+        {isDone && <span className="goal-done-label">Abgeschlossen</span>}
         {isRecurring && cycleStatus?.isMissed && <span className="goal-missed-badge">Verpasst</span>}
       </div>
 

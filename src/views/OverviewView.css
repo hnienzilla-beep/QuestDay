@@ -1,0 +1,35 @@
+.overview-greeting {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.overview-date {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.overview-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.overview-progress-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.overview-progress-text strong {
+  font-size: 15px;
+}
+
+.overview-progress-text span {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

@@ -1,50 +1,42 @@
-import { useEffect, useState, Suspense, lazy } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import BottomNav from './components/BottomNav'
 import { ThemeProvider } from './features/theme/ThemeProvider'
-import { ensureSeedData, ensureSetupTodos } from './db/seed'
-import { evaluateStreakOnAppOpen } from './features/gamification/streaks'
-import { evaluateBadges } from './features/gamification/badges'
+import { ensureSetupTodos } from './db/seed'
 import { useReminderScheduler } from './features/notifications/useReminderScheduler'
-import HomeView from './views/HomeView'
-import WeekView from './views/WeekView'
-import ProfileView from './views/ProfileView'
+import OverviewView from './views/OverviewView'
+import TodosView from './views/TodosView'
+import GoalsView from './views/GoalsView'
+import SettingsView from './views/SettingsView'
 
-const StatsView = lazy(() => import('./views/StatsView'))
-
-export type View = 'home' | 'week' | 'stats' | 'profile'
+export type View = 'overview' | 'todos' | 'goals'
 
 function AppShell() {
-  const [activeView, setActiveView] = useState<View>('home')
-  const [ready, setReady] = useState(false)
+  const [activeView, setActiveView] = useState<View>('overview')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
-    async function init() {
-      await ensureSeedData()
-      await ensureSetupTodos()
-      await evaluateStreakOnAppOpen()
-      await evaluateBadges()
-      setReady(true)
-    }
-    init()
+    ensureSetupTodos()
   }, [])
 
   useReminderScheduler()
 
-  if (!ready) return null
+  const openSettings = () => setSettingsOpen(true)
 
   return (
     <>
       <main className="app-main">
-        {activeView === 'home' && <HomeView />}
-        {activeView === 'week' && <WeekView />}
-        {activeView === 'stats' && (
-          <Suspense fallback={null}>
-            <StatsView />
-          </Suspense>
+        {activeView === 'overview' && (
+          <OverviewView onOpenSettings={openSettings} onNavigate={setActiveView} />
         )}
-        {activeView === 'profile' && <ProfileView />}
+        {activeView === 'todos' && <TodosView onOpenSettings={openSettings} />}
+        {activeView === 'goals' && <GoalsView onOpenSettings={openSettings} />}
       </main>
       <BottomNav active={activeView} onChange={setActiveView} />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsView onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
     </>
   )
 }

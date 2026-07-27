@@ -15,9 +15,22 @@
   margin-bottom: 4px;
 }
 
+.goal-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .goal-card-title {
   font-size: 15px;
   font-weight: 700;
+}
+
+.goal-done-label {
+  color: var(--color-success);
+  font-weight: 600;
 }
 
 .goal-card.done .goal-card-title {

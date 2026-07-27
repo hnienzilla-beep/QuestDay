@@ -14,7 +14,7 @@ export default function NotificationPermissionBanner() {
 
   return (
     <div className="reminder-banner">
-      <p>Aktiviere Erinnerungen, damit QuestDay dich rechtzeitig benachrichtigt.</p>
+      <p>Aktiviere Erinnerungen, damit ToDo dich rechtzeitig benachrichtigt.</p>
       <button type="button" className="btn btn-primary" onClick={handleEnable}>
         Aktivieren
       </button>
