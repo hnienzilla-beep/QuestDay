@@ -3,14 +3,17 @@ import { db } from '../../db/db'
 import type { Task } from '../../types/task'
 import type { SubStep } from '../../types/goal'
 import { todayISODate } from '../../utils/dateUtils'
-import { triggerAutoSync } from '../obsidianSync/autoSync'
+import { triggerAutoSync } from '../obsidianSync/syncScheduler'
+import { completionIdFor } from '../obsidianSync/import/ids'
 
 export function useCompleteTask() {
   const completeTask = useCallback(async (task: Task): Promise<void> => {
     const now = new Date()
 
-    await db.taskCompletions.add({
-      id: crypto.randomUUID(),
+    await db.taskCompletions.put({
+      // Abgeleitete ID statt Zufalls-UUID: so erzeugen zwei Geräte für dieselbe Erledigung
+      // denselben Datensatz, und der Abgleich konvergiert sofort.
+      id: completionIdFor(task.id, todayISODate()),
       taskId: task.id,
       taskType: task.type,
       categoryId: task.categoryId,

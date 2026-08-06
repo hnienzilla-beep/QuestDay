@@ -1,5 +1,6 @@
 import { db } from '../../db/db'
 import type { Task, OneOffTask, RecurringTask, Appointment } from '../../types/task'
+import { triggerAutoSync } from '../obsidianSync/syncScheduler'
 
 function newId(): string {
   return crypto.randomUUID()
@@ -26,6 +27,7 @@ export async function addOneOffTask(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
@@ -52,6 +54,7 @@ export async function addRecurringTask(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
@@ -80,6 +83,7 @@ export async function addAppointment(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
@@ -94,6 +98,7 @@ export async function updateOneOffTask(
   },
 ): Promise<void> {
   await db.tasks.update(id, patch as Partial<OneOffTask>)
+  triggerAutoSync()
 }
 
 export async function updateRecurringTask(
@@ -111,6 +116,7 @@ export async function updateRecurringTask(
     ...patch,
     weekdays: patch.frequency === 'weekly' ? patch.weekdays : [],
   } as Partial<RecurringTask>)
+  triggerAutoSync()
 }
 
 export async function updateAppointment(
@@ -126,6 +132,7 @@ export async function updateAppointment(
   },
 ): Promise<void> {
   await db.tasks.update(id, patch as Partial<Appointment>)
+  triggerAutoSync()
 }
 
 /** Sortierbare Uhrzeit einer Aufgabe (Termin: Startzeit; sonst optionale Uhrzeit). */
@@ -137,6 +144,7 @@ export function taskSortTime(task: Task): string {
 export async function deleteTask(id: string): Promise<void> {
   await db.tasks.delete(id)
   await db.taskCompletions.where('taskId').equals(id).delete()
+  triggerAutoSync()
 }
 
 /** Weist einer datierbaren Aufgabe (oneoff/appointment) einen Tag zu (oder entfernt ihn). Für Drag & Drop. */
@@ -148,6 +156,7 @@ export async function setTaskDate(taskId: string, dateStr: string | null): Promi
   } else if (task.type === 'appointment' && dateStr) {
     await db.tasks.update(taskId, { date: dateStr } as Partial<Appointment>)
   }
+  triggerAutoSync()
 }
 
 export async function allTasks(): Promise<Task[]> {

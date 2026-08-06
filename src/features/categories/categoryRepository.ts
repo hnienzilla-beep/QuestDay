@@ -1,5 +1,6 @@
 import { db } from '../../db/db'
 import type { Category } from '../../types/category'
+import { triggerAutoSync } from '../obsidianSync/syncScheduler'
 
 /** Standard-Farbpalette für neue Kategorien. */
 export const CATEGORY_COLOR_PALETTE = [
@@ -26,11 +27,13 @@ export async function addCategory(name: string, color: string): Promise<Category
     createdAt: new Date().toISOString(),
   }
   await db.categories.add(category)
+  triggerAutoSync()
   return category
 }
 
 export async function updateCategory(id: string, patch: { name: string; color: string }): Promise<void> {
   await db.categories.update(id, { name: patch.name.trim(), color: patch.color })
+  triggerAutoSync()
 }
 
 /** Löscht eine Kategorie und setzt sie auf allen Aufgaben/Zielen auf null. */
@@ -38,4 +41,5 @@ export async function deleteCategory(id: string): Promise<void> {
   await db.categories.delete(id)
   await db.tasks.where('categoryId').equals(id).modify({ categoryId: null })
   await db.goals.where('categoryId').equals(id).modify({ categoryId: null })
+  triggerAutoSync()
 }

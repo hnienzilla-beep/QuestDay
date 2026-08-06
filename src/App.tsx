@@ -2,6 +2,7 @@ import { useState, Suspense } from 'react'
 import BottomNav from './components/BottomNav'
 import { ThemeProvider } from './features/theme/ThemeProvider'
 import { useReminderScheduler } from './features/notifications/useReminderScheduler'
+import { useSyncScheduler } from './features/obsidianSync/useSyncScheduler'
 import OverviewView from './views/OverviewView'
 import TodosView from './views/TodosView'
 import GoalsView from './views/GoalsView'
@@ -14,6 +15,7 @@ function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   useReminderScheduler()
+  useSyncScheduler()
 
   const openSettings = () => setSettingsOpen(true)
 
