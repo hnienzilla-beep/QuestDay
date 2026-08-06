@@ -18,7 +18,6 @@ import { db } from '../db/db'
 import type { Task } from '../types/task'
 import { todayISODate } from '../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate, taskSortTime, setTaskDate } from '../features/tasks/taskRepository'
-import { triggerAutoSync } from '../features/obsidianSync/autoSync'
 import { useCompleteTask } from '../features/tasks/useCompleteTask'
 import AppHeader from '../components/AppHeader'
 import ProgressRing from '../components/ProgressRing'
@@ -71,11 +70,11 @@ export default function OverviewView({ onOpenSettings, onNavigate }: Props) {
     if (typeof overId !== 'string') return
     const taskId = String(e.active.id)
     if (overId.startsWith('day:')) {
-      setTaskDate(taskId, overId.slice(4)).then(triggerAutoSync)
+      setTaskDate(taskId, overId.slice(4))
     } else if (overId.startsWith('dayfull:')) {
-      setTaskDate(taskId, overId.slice(8)).then(triggerAutoSync)
+      setTaskDate(taskId, overId.slice(8))
     } else if (overId === 'tray') {
-      setTaskDate(taskId, null).then(triggerAutoSync)
+      setTaskDate(taskId, null)
     }
   }
 

@@ -43,3 +43,54 @@
 .obsidian-sync-status--error {
   color: #e05252;
 }
+
+.obsidian-sync-hint {
+  margin: 6px 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.obsidian-sync-hint code {
+  font-size: 0.95em;
+}
+
+.obsidian-sync-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.obsidian-sync-facts dt {
+  font-weight: 600;
+}
+
+.obsidian-sync-facts dd {
+  margin: 0;
+}
+
+.obsidian-sync-warnings {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: #d08a3a;
+  line-height: 1.4;
+}
+
+.obsidian-sync-warnings ul {
+  padding-left: 18px;
+  margin: 4px 0 0;
+}
+
+.obsidian-sync-more {
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.obsidian-sync-more summary {
+  cursor: pointer;
+  opacity: 0.75;
+}

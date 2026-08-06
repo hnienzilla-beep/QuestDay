@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
 import { db } from '../../db/db'
 import type { Goal, SubStep } from '../../types/goal'
-import { triggerAutoSync } from '../obsidianSync/autoSync'
+import { triggerAutoSync } from '../obsidianSync/syncScheduler'
+import { goalCycleIdFor, subStepCycleIdFor } from '../obsidianSync/import/ids'
 
 export function useCompleteGoalCycle() {
   const completeCycleSubStep = useCallback(
@@ -14,8 +15,9 @@ export function useCompleteGoalCycle() {
     ): Promise<void> => {
       const now = new Date().toISOString()
 
-      await db.subStepCycleCompletions.add({
-        id: crypto.randomUUID(),
+      // Abgeleitete IDs: zwei Geräte erzeugen für denselben Zyklus denselben Datensatz.
+      await db.subStepCycleCompletions.put({
+        id: subStepCycleIdFor(subStep.id, cycleDueDate),
         subStepId: subStep.id,
         goalId: goal.id,
         cycleDueDate,
@@ -23,8 +25,8 @@ export function useCompleteGoalCycle() {
       })
 
       if (isLastStepOfCycle) {
-        await db.goalCycleCompletions.add({
-          id: crypto.randomUUID(),
+        await db.goalCycleCompletions.put({
+          id: goalCycleIdFor(goal.id, cycleDueDate),
           goalId: goal.id,
           categoryId: goal.categoryId,
           cycleDueDate,
