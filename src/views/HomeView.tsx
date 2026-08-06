@@ -12,6 +12,7 @@ import XpBar from '../features/gamification/XpBar'
 import NotificationPermissionBanner from '../features/notifications/NotificationPermissionBanner'
 import TaskListItem from '../features/tasks/TaskListItem'
 import TaskForm from '../features/tasks/TaskForm'
+import SummaryPanel from '../features/summary/SummaryPanel'
 import GoalForm from '../features/goals/GoalForm'
 import GoalCard from '../features/goals/GoalCard'
 
@@ -68,6 +69,7 @@ export default function HomeView() {
 
       <XpBar />
       <NotificationPermissionBanner />
+      <SummaryPanel />
 
       <div className="section-header">
         <h2 className="section-title">Heute</h2>

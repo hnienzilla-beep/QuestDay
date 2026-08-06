@@ -8,6 +8,7 @@ QuestDay ist ein Aufgaben-Planer als installierbare Progressive Web App (PWA), o
 - **Wiederholende Ziele**: Ziele können täglich/wöchentlich/monatlich/alle X Tage wiederholt werden — Teilschritte setzen sich pro Zyklus automatisch zurück, verpasste Zyklen werden markiert, Zyklen zählen in Streak und Statistik
 - **Ziele bearbeiten & löschen**: Antippen einer Ziel-Karte öffnet ein Bearbeiten-Formular (Titel, Kategorie, Teilschritte, Wiederholung); Löschen erfolgt dort über einen Bestätigungsdialog
 - **Feste Kategorien**: Haushalt, Arbeit, Hobby, Sonstiges
+- **Tageszusammenfassung** auf der Startseite: umschaltbar zwischen **Heute** und **Morgen**, mit Vorlesen-Funktion (Sprachausgabe auf dem Gerät) und Export von heutiger Zusammenfassung + Ausblick auf morgen als Textdatei
 - **Erinnerungen** über die Notification API (lokal, siehe Einschränkungen unten)
 - **Gamification**: XP & Level, Tages-Streaks, Badges, freischaltbare Belohnungen (virtuelle Trophäen, Farbdesigns, selbst definierte echte Belohnungen)
 - **Ansichten**: Heute, Woche, Statistik (mit Diagrammen), Profil
@@ -48,6 +49,14 @@ Nie negativ – zu spät erledigte Aufgaben geben weniger, aber nie null XP:
 ## Streaks
 
 Ein Tag zählt als Streak-Tag, wenn alle an diesem Tag fälligen Aufgaben/Termine/wiederholenden Ziel-Zyklen erledigt wurden. Tage ohne Fälliges zählen automatisch als erfüllt. Einmalige Ziele fließen weiterhin nicht ein, da sie kein festes Tagesdatum haben.
+
+## Tageszusammenfassung & Sprachausgabe
+
+Die Karte oben auf der Startseite fasst den Tag zusammen: fällige Aufgaben, Termine mit Uhrzeit, heute fällige Ziel-Zyklen, erledigt/offen, XP des Tages, Level und Streak. Über den Umschalter **Morgen** zeigt dieselbe Karte den Ausblick auf den nächsten Tag (bereits erledigte einmalige Aufgaben und Termine werden dort ausgeblendet).
+
+- **Vorlesen** nutzt die Web Speech API des Geräts – ohne Server, ohne Cloud-Dienst. Der Text wird satzweise ausgegeben, weil iOS lange Äußerungen sonst abbricht. Die Ausgabe muss per Tipp gestartet werden und stoppt, wenn die App in den Hintergrund geht oder der Stummschalter aktiv ist.
+- **Als Audiodatei speichern ist bewusst nicht implementiert**: Browser geben die Sprachausgabe nur an die Lautsprecher aus, ein Mitschnitt in eine Datei ist ohne Cloud-TTS-Dienst nicht möglich. Stattdessen exportiert die Karte die Zusammenfassung von heute **und** morgen als Textdatei (iOS-Sharesheet bzw. Download).
+- Ist der **Obsidian-Vault-Sync** eingerichtet, landen beide Zusammenfassungen zusätzlich unter `10-Quests/<Datum>.md` im Vault.
 
 ## Erinnerungen – wichtige Einschränkung
 

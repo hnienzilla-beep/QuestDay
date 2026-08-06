@@ -1,6 +1,9 @@
+import { addDays } from 'date-fns'
 import { db } from '../../db/db'
-import { todayISODate } from '../../utils/dateUtils'
+import { isoDateOf, todayISODate } from '../../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../tasks/taskRepository'
+import { buildDaySummary } from '../summary/daySummary'
+import { summaryLines } from '../summary/summaryText'
 import { upsertFile } from './githubApi'
 
 function cleanTitle(title: string): string {
@@ -42,5 +45,19 @@ export async function syncQuestsHeute(): Promise<void> {
   })
   const body = lines.length > 0 ? lines.join('\n') + '\n' : '_Heute keine Aufgaben fällig._\n'
 
-  await upsertFile(`10-Quests/${dateStr}.md`, frontmatter + body, `Sync ${dateStr}: Quests`)
+  const [summaryHeute, summaryMorgen] = await Promise.all([
+    buildDaySummary(dateStr),
+    buildDaySummary(isoDateOf(addDays(new Date(), 1))),
+  ])
+  const summarySection = [
+    '',
+    '## Zusammenfassung heute',
+    ...summaryLines(summaryHeute).map((l) => `- ${l}`),
+    '',
+    '## Ausblick morgen',
+    ...summaryLines(summaryMorgen).map((l) => `- ${l}`),
+    '',
+  ].join('\n')
+
+  await upsertFile(`10-Quests/${dateStr}.md`, frontmatter + body + summarySection, `Sync ${dateStr}: Quests`)
 }
