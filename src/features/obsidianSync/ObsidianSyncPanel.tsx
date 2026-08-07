@@ -8,7 +8,8 @@ import './ObsidianSyncPanel.css'
 type StatusType = 'idle' | 'busy' | 'success' | 'error'
 
 function describeImport(result: InboxImportResult): string {
-  if (result.fileMissing) return `Keine Inbox-Datei im Vault gefunden`
+  if (result.inboxCreated) return 'Inbox-Datei im Vault angelegt'
+  if (result.fileMissing) return 'Keine Inbox-Datei im Vault gefunden'
   const count = result.importedTasks + result.importedGoals
   if (count === 0) return 'Nichts Neues in der Inbox'
   const parts: string[] = []

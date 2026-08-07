@@ -289,10 +289,18 @@ function isWarning(value: ParsedEntry | ParseWarning): value is ParseWarning {
 export function parseInboxLines(lines: string[], today: string): ParsedInbox {
   const entries: ParsedEntry[] = []
   const warnings: ParseWarning[] = []
+  let inCodeBlock = false
 
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index]
     if (line.trim().toLowerCase().startsWith(ARCHIVE_HEADING.toLowerCase())) break
+
+    // Beispiele in Code-Blöcken (etwa in der Syntax-Hilfe) sind keine Aufgaben.
+    if (/^\s*(```|~~~)/.test(line)) {
+      inCodeBlock = !inCodeBlock
+      continue
+    }
+    if (inCodeBlock) continue
 
     const match = /^\s*[-*]\s*\[([ xX])\]\s*(.+?)\s*$/.exec(line)
     if (!match) continue

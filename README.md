@@ -65,7 +65,7 @@ Einzurichten unter **Profil → Obsidian-Sync**: GitHub-Benutzername, Repo-Name 
 
 **Export (App → Vault)**: `10-Quests/<Datum>.md` mit Frontmatter (erledigt, offen, XP, Level, Streak), der Tages-Checkliste sowie den Zusammenfassungen für heute und morgen. Läuft automatisch kurz nach jeder Änderung und über *Jetzt synchronisieren*.
 
-**Import (Vault → App)**: *Jetzt synchronisieren* liest zuerst die Inbox-Datei. Jede **offene** Checkbox-Zeile wird als Aufgabe oder Ziel angelegt; danach verschiebt QuestDay genau diese Zeilen abgehakt in den Abschnitt `## Importiert` am Dateiende, damit sie nicht doppelt ankommen. Alles andere in der Datei – Fließtext, Überschriften, Frontmatter, bereits abgehakte Zeilen – bleibt unverändert.
+**Import (Vault → App)**: *Jetzt synchronisieren* liest zuerst die Inbox-Datei. Fehlt sie noch, legt QuestDay sie beim ersten Sync mit einer Startvorlage samt Syntax-Hilfe an – die Beispiele darin stehen in einem Code-Block und werden beim Import übersprungen. Jede **offene** Checkbox-Zeile wird als Aufgabe oder Ziel angelegt; danach verschiebt QuestDay genau diese Zeilen abgehakt in den Abschnitt `## Importiert` am Dateiende, damit sie nicht doppelt ankommen. Alles andere in der Datei – Fließtext, Überschriften, Frontmatter, bereits abgehakte Zeilen – bleibt unverändert.
 
 ```markdown
 - [ ] Wäsche waschen #Haushalt @2026-08-10 !18:00

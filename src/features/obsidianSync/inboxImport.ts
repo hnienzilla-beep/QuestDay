@@ -4,11 +4,14 @@ import { addGoal } from '../goals/goalRepository'
 import { readFile, upsertFile, ObsidianSyncError } from './githubApi'
 import { getSyncSettings, DEFAULT_INBOX_PATH } from './settings'
 import { parseInboxLines, rewriteInbox, type ParsedEntry } from './inboxParser'
+import { INBOX_TEMPLATE } from './inboxTemplate'
 
 export interface InboxImportResult {
   importedTasks: number
   importedGoals: number
-  /** Inbox-Datei existiert (noch) nicht im Vault. */
+  /** Inbox-Datei existierte nicht und wurde mit der Startvorlage angelegt. */
+  inboxCreated: boolean
+  /** Inbox-Datei fehlt und konnte auch nicht angelegt werden. */
   fileMissing: boolean
   /** Importierte Zeilen konnten in der Inbox als erledigt markiert werden. */
   inboxUpdated: boolean
@@ -78,7 +81,25 @@ export async function importInbox(): Promise<InboxImportResult> {
 
   const file = await readFile(path)
   if (!file) {
-    return { importedTasks: 0, importedGoals: 0, fileMissing: true, inboxUpdated: false, warnings: [] }
+    // Erster Sync: Inbox mit Startvorlage anlegen, damit sofort losgeschrieben werden kann.
+    const created: InboxImportResult = {
+      importedTasks: 0,
+      importedGoals: 0,
+      inboxCreated: false,
+      fileMissing: true,
+      inboxUpdated: false,
+      warnings: [],
+    }
+    try {
+      await upsertFile(path, INBOX_TEMPLATE, `QuestDay: Inbox "${path}" angelegt`, null)
+      created.inboxCreated = true
+      created.fileMissing = false
+    } catch (err) {
+      created.warnings.push(
+        `Inbox "${path}" konnte nicht angelegt werden (${err instanceof Error ? err.message : 'unbekannter Fehler'}).`,
+      )
+    }
+    return created
   }
 
   const lines = file.content.split('\n')
@@ -86,6 +107,7 @@ export async function importInbox(): Promise<InboxImportResult> {
   const result: InboxImportResult = {
     importedTasks: 0,
     importedGoals: 0,
+    inboxCreated: false,
     fileMissing: false,
     inboxUpdated: false,
     warnings: warnings.map((w) => `${w.reason}: ${w.line.trim()}`),
