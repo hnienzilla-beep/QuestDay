@@ -43,3 +43,25 @@
 .obsidian-sync-status--error {
   color: #e05252;
 }
+
+.obsidian-sync-hint {
+  margin: 0 0 4px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.obsidian-sync-hint code {
+  font-size: 11px;
+  background: var(--color-surface-alt);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.obsidian-sync-warnings {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-warning);
+}
