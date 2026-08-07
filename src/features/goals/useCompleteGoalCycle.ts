@@ -6,6 +6,7 @@ import { xpForSubStep } from '../gamification/xp'
 import { awardXp } from '../gamification/awardXp'
 import { evaluateBadges } from '../gamification/badges'
 import type { CompletionResult } from '../tasks/useCompleteTask'
+import { triggerAutoSync } from '../obsidianSync/autoSync'
 
 export function useCompleteGoalCycle() {
   const completeCycleSubStep = useCallback(
@@ -40,6 +41,7 @@ export function useCompleteGoalCycle() {
 
       await awardXp(xp)
       const newlyUnlockedBadges: UnlockedBadge[] = await evaluateBadges()
+      triggerAutoSync()
       return { xpAwarded: xp, newlyUnlockedBadges }
     },
     [],

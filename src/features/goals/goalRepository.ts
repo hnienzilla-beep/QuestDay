@@ -3,6 +3,7 @@ import type { Goal, SubStep, GoalRecurrence, RecurrenceFrequency } from '../../t
 import type { Category } from '../../types/task'
 import { isGoalDueOnDate, mostRecentDueDateOnOrBefore, isRecurrenceActiveOnDate } from './goalCycles'
 import { todayISODate } from '../../utils/dateUtils'
+import { triggerAutoSync } from '../obsidianSync/autoSync'
 
 function newId(): string {
   return crypto.randomUUID()
@@ -61,6 +62,7 @@ export async function addGoal(input: {
   if (subSteps.length > 0) {
     await db.subSteps.bulkAdd(subSteps)
   }
+  triggerAutoSync()
   return goal
 }
 
@@ -126,6 +128,8 @@ export async function updateGoal(id: string, patch: GoalUpdateInput, subStepChan
       completedAt: allDone ? (existing.completedAt ?? new Date().toISOString()) : null,
     })
   }
+
+  triggerAutoSync()
 }
 
 export async function deleteGoal(id: string): Promise<void> {
@@ -133,6 +137,7 @@ export async function deleteGoal(id: string): Promise<void> {
   await db.subSteps.where('goalId').equals(id).delete()
   await db.goalCycleCompletions.where('goalId').equals(id).delete()
   await db.subStepCycleCompletions.where('goalId').equals(id).delete()
+  triggerAutoSync()
 }
 
 export async function allGoals(): Promise<Goal[]> {
@@ -184,4 +189,5 @@ export async function stopGoalRecurrence(goalId: string): Promise<void> {
   const goal = await db.goals.get(goalId)
   if (!goal?.recurrence || goal.recurrence.stoppedAt) return
   await db.goals.update(goalId, { recurrence: { ...goal.recurrence, stoppedAt: new Date().toISOString() } })
+  triggerAutoSync()
 }

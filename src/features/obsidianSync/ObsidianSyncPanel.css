@@ -16,12 +16,25 @@
   font-size: 0.85rem;
 }
 
-.obsidian-sync-fields input {
+.obsidian-sync-fields input,
+.obsidian-sync-fields select {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #444);
   background: var(--input-bg, transparent);
   color: inherit;
+}
+
+.obsidian-sync-hint {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.obsidian-sync-last {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  opacity: 0.75;
 }
 
 .obsidian-sync-actions {

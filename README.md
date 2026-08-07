@@ -12,6 +12,7 @@ QuestDay ist ein Aufgaben-Planer als installierbare Progressive Web App (PWA), o
 - **Gamification**: XP & Level, Tages-Streaks, Badges, freischaltbare Belohnungen (virtuelle Trophäen, Farbdesigns, selbst definierte echte Belohnungen)
 - **Ansichten**: Heute, Woche, Statistik (mit Diagrammen), Profil
 - **.ics-Export** für Termine (einzeln oder als Wochen-Export), inkl. iOS-Sharesheet
+- **Obsidian-Sync**: schreibt Quests, To-dos und Ziele als Markdown-Dateien in ein GitHub-Repo (siehe unten)
 
 ## Tech-Stack
 
@@ -57,6 +58,28 @@ Stattdessen prüft die App beim Start, alle 60 Sekunden während sie offen ist, 
 
 - Ist QuestDay offen oder war kürzlich im Hintergrund aktiv, kommen Erinnerungen zuverlässig an.
 - Ist die App vollständig beendet, pausiert iOS jeden Hintergrundcode. Erinnerungen, die in dieser Zeit fällig wurden, werden beim nächsten Öffnen der App sofort nachgeholt.
+
+## Obsidian-Sync
+
+Unter **Profil → Obsidian-Sync** lassen sich GitHub-Benutzername, Repo-Name und ein Personal Access Token (Scope `repo` bzw. Fine-grained mit Schreibrecht auf *Contents*) hinterlegen. Die Zugangsdaten bleiben – wie alle anderen Daten – ausschließlich lokal im Browser (`localStorage`).
+
+Ein Sync schreibt drei Markdown-Dateien ins Vault-Repo:
+
+| Datei | Inhalt |
+|---|---|
+| `10-Quests/yyyy-MM-dd.md` | Die heute fälligen Quests als Checkliste, plus XP/Level/Streak im Frontmatter |
+| `20-Todos/To-dos.md` | Alle To-dos, gruppiert nach Überfällig, Heute, Demnächst, Ohne Datum, Termine, Wiederkehrend und Erledigt (letzte 30 Tage) |
+| `30-Ziele/Ziele.md` | Alle Ziele mit Teilschritten – offen, wiederkehrend (inkl. aktuellem Zyklus), beendete Wiederholungen und erledigte Ziele |
+
+Alle drei Dateien werden bei jedem Sync komplett neu geschrieben (bestehende Datei wird überschrieben) und tragen im Frontmatter Kennzahlen, die sich in Obsidian per Dataview auswerten lassen. Fälligkeitsdaten stehen im Format des *Tasks*-Plugins (`📅`, `✅`, `🔁`).
+
+### Wann synchronisiert wird
+
+- **Nach jeder Änderung**: Anlegen, Löschen, Abhaken und Bearbeiten von Aufgaben und Zielen stößt einen Sync an (3 Sekunden Debounce, damit mehrere Änderungen hintereinander nur einen Commit erzeugen).
+- **Regelmäßig im eingestellten Intervall**: standardmäßig alle 30 Minuten, einstellbar von 15 Minuten bis 12 Stunden oder auf **"Nur manuell"**. Geprüft wird beim App-Start, jede Minute während die App offen ist, beim Zurückkehren in den Vordergrund und sobald wieder eine Internetverbindung besteht.
+- **Manuell** über **"Jetzt synchronisieren"**.
+
+Wie bei den Erinnerungen gilt: Ist die App komplett geschlossen, läuft kein Hintergrundcode. Ein fällig gewordener Sync wird dann beim nächsten Öffnen sofort nachgeholt. Parallele Syncs werden zusammengefasst, und die drei Dateien werden nacheinander geschrieben, damit GitHub pro Datei mit einem aktuellen SHA arbeitet.
 
 ## Deployment (GitHub Pages)
 

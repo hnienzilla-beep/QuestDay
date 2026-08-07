@@ -1,16 +1,38 @@
-import { useEffect, useState } from 'react'
-import { getSyncSettings, saveSyncSettings } from './settings'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import {
+  getSyncSettings,
+  saveSyncSettings,
+  DEFAULT_INTERVAL_MINUTES,
+  INTERVAL_OPTIONS,
+} from './settings'
 import { testConnection } from './githubApi'
-import { syncQuestsHeute } from './questExport'
+import { runSync } from './runSync'
+import { getSyncStatus, subscribeSyncStatus, setSyncStatus } from './syncStatus'
 import './ObsidianSyncPanel.css'
 
-type StatusType = 'idle' | 'busy' | 'success' | 'error'
+function intervalLabel(minutes: number): string {
+  if (minutes === 0) return 'Nur manuell'
+  if (minutes < 60) return `Alle ${minutes} Minuten`
+  const hours = minutes / 60
+  return hours === 1 ? 'Jede Stunde' : `Alle ${hours} Stunden`
+}
+
+function formatLastSync(iso: string | null): string {
+  if (!iso) return 'Noch kein Sync gelaufen.'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Noch kein Sync gelaufen.'
+  return `Zuletzt synchronisiert: ${date.toLocaleString('de-DE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })}`
+}
 
 export default function ObsidianSyncPanel() {
   const [username, setUsername] = useState('')
   const [repo, setRepo] = useState('obsidian-vault')
   const [token, setToken] = useState('')
-  const [status, setStatus] = useState<{ type: StatusType; message: string }>({ type: 'idle', message: '' })
+  const [intervalMinutes, setIntervalMinutes] = useState<number>(DEFAULT_INTERVAL_MINUTES)
+  const status = useSyncExternalStore(subscribeSyncStatus, getSyncStatus)
 
   useEffect(() => {
     const existing = getSyncSettings()
@@ -18,43 +40,48 @@ export default function ObsidianSyncPanel() {
       setUsername(existing.username)
       setRepo(existing.repo || 'obsidian-vault')
       setToken(existing.token)
+      setIntervalMinutes(existing.intervalMinutes)
     }
   }, [])
 
-  function persist() {
+  function persist(nextIntervalMinutes = intervalMinutes) {
     saveSyncSettings({
       username: username.trim(),
       repo: repo.trim() || 'obsidian-vault',
       token: token.trim(),
+      intervalMinutes: nextIntervalMinutes,
     })
+  }
+
+  function handleIntervalChange(value: number) {
+    setIntervalMinutes(value)
+    persist(value)
   }
 
   async function handleTest() {
     persist()
-    setStatus({ type: 'busy', message: 'Prüfe Verbindung…' })
+    setSyncStatus({ phase: 'running', message: 'Prüfe Verbindung…' })
     const result = await testConnection()
-    setStatus({ type: result.ok ? 'success' : 'error', message: result.message })
+    setSyncStatus({ phase: result.ok ? 'success' : 'error', message: result.message })
   }
 
   async function handleSync() {
     persist()
-    setStatus({ type: 'busy', message: 'Synchronisiere…' })
     try {
-      await syncQuestsHeute()
-      setStatus({ type: 'success', message: 'Synchronisiert ✅' })
-    } catch (err) {
-      setStatus({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Unbekannter Fehler beim Sync.',
-      })
+      await runSync()
+    } catch {
+      // Fehlermeldung steht bereits im Sync-Status.
     }
   }
 
-  const busy = status.type === 'busy'
+  const busy = status.phase === 'running'
 
   return (
     <div className="obsidian-sync-panel">
       <div className="section-title">Obsidian-Sync</div>
+      <div className="obsidian-sync-hint">
+        Schreibt heutige Quests, alle To-dos und alle Ziele als Markdown-Dateien in dein Vault-Repo.
+      </div>
       <div className="obsidian-sync-fields">
         <label>
           GitHub-Benutzername
@@ -78,6 +105,16 @@ export default function ObsidianSyncPanel() {
             placeholder="github_pat_..."
           />
         </label>
+        <label>
+          Automatisch synchronisieren
+          <select value={intervalMinutes} onChange={(e) => handleIntervalChange(Number(e.target.value))}>
+            {INTERVAL_OPTIONS.map((minutes) => (
+              <option key={minutes} value={minutes}>
+                {intervalLabel(minutes)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="obsidian-sync-actions">
         <button type="button" className="btn btn-secondary" onClick={handleTest} disabled={busy}>
@@ -87,8 +124,9 @@ export default function ObsidianSyncPanel() {
           Jetzt synchronisieren
         </button>
       </div>
+      <div className="obsidian-sync-last">{formatLastSync(status.lastSyncAt)}</div>
       {status.message && (
-        <div className={`obsidian-sync-status obsidian-sync-status--${status.type}`}>{status.message}</div>
+        <div className={`obsidian-sync-status obsidian-sync-status--${status.phase}`}>{status.message}</div>
       )}
     </div>
   )

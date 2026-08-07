@@ -14,6 +14,11 @@ function authHeaders(token: string): Record<string, string> {
   }
 }
 
+/** Pfadsegmente einzeln kodieren – die "/" zwischen Ordnern müssen erhalten bleiben. */
+function encodePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
 export interface ConnectionTestResult {
   ok: boolean
   message: string
@@ -43,7 +48,7 @@ export async function testConnection(): Promise<ConnectionTestResult> {
 }
 
 async function getFileSha(path: string, settings: { username: string; repo: string; token: string }): Promise<string | null> {
-  const res = await fetch(`${apiBase(settings)}/contents/${encodeURIComponent(path)}`, {
+  const res = await fetch(`${apiBase(settings)}/contents/${encodePath(path)}`, {
     headers: authHeaders(settings.token),
   })
   if (res.status === 404) return null
@@ -71,7 +76,7 @@ export async function upsertFile(path: string, content: string, commitMessage: s
 
   let res: Response
   try {
-    res = await fetch(`${apiBase(settings)}/contents/${encodeURIComponent(path)}`, {
+    res = await fetch(`${apiBase(settings)}/contents/${encodePath(path)}`, {
       method: 'PUT',
       headers: { ...authHeaders(settings.token), 'Content-Type': 'application/json' },
       body: JSON.stringify({

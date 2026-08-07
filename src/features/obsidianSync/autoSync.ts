@@ -1,5 +1,5 @@
 import { getSyncSettings } from './settings'
-import { syncQuestsHeute } from './questExport'
+import { runSyncQuiet } from './runSync'
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -8,8 +8,7 @@ export function triggerAutoSync(): void {
   if (!getSyncSettings()) return
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    syncQuestsHeute().catch((err) => {
-      console.warn('Obsidian-Sync (automatisch) fehlgeschlagen:', err)
-    })
+    debounceTimer = null
+    runSyncQuiet()
   }, 3000)
 }

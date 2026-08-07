@@ -1,5 +1,6 @@
 import { db } from '../../db/db'
 import type { Task, OneOffTask, RecurringTask, Appointment, Category } from '../../types/task'
+import { triggerAutoSync } from '../obsidianSync/autoSync'
 
 function newId(): string {
   return crypto.randomUUID()
@@ -24,6 +25,7 @@ export async function addOneOffTask(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
@@ -48,6 +50,7 @@ export async function addRecurringTask(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
@@ -76,12 +79,14 @@ export async function addAppointment(input: {
     completedAt: null,
   }
   await db.tasks.add(task)
+  triggerAutoSync()
   return task
 }
 
 export async function deleteTask(id: string): Promise<void> {
   await db.tasks.delete(id)
   await db.taskCompletions.where('taskId').equals(id).delete()
+  triggerAutoSync()
 }
 
 export async function allTasks(): Promise<Task[]> {

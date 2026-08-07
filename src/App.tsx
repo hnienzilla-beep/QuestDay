@@ -5,6 +5,7 @@ import { ensureSeedData } from './db/seed'
 import { evaluateStreakOnAppOpen } from './features/gamification/streaks'
 import { evaluateBadges } from './features/gamification/badges'
 import { useReminderScheduler } from './features/notifications/useReminderScheduler'
+import { useSyncScheduler } from './features/obsidianSync/useSyncScheduler'
 import HomeView from './views/HomeView'
 import WeekView from './views/WeekView'
 import ProfileView from './views/ProfileView'
@@ -28,6 +29,7 @@ function AppShell() {
   }, [])
 
   useReminderScheduler()
+  useSyncScheduler()
 
   if (!ready) return null
 
