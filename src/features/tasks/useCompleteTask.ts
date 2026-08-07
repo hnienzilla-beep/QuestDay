@@ -33,7 +33,11 @@ export function useCompleteTask() {
     })
 
     if (task.type !== 'recurring') {
-      await db.tasks.update(task.id, { completed: true, completedAt: now.toISOString() })
+      await db.tasks.update(task.id, {
+        completed: true,
+        completedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      })
     }
 
     await awardXp(xp)
@@ -54,7 +58,11 @@ export function useCompleteTask() {
     await db.taskCompletions.delete(entry.id)
     await awardXp(-entry.xpAwarded)
     if (task.type !== 'recurring') {
-      await db.tasks.update(task.id, { completed: false, completedAt: null })
+      await db.tasks.update(task.id, {
+        completed: false,
+        completedAt: null,
+        updatedAt: new Date().toISOString(),
+      })
     }
     triggerAutoSync()
   }, [])
@@ -62,12 +70,14 @@ export function useCompleteTask() {
   const completeSubStep = useCallback(
     async (subStep: SubStep, isLastStep: boolean): Promise<CompletionResult> => {
       const xp = xpForSubStep(isLastStep)
+      const now = new Date().toISOString()
       await db.subSteps.update(subStep.id, {
         completed: true,
-        completedAt: new Date().toISOString(),
+        completedAt: now,
+        updatedAt: now,
       })
       if (isLastStep) {
-        await db.goals.update(subStep.goalId, { completedAt: new Date().toISOString() })
+        await db.goals.update(subStep.goalId, { completedAt: now, updatedAt: now })
       }
       await awardXp(xp)
       const newlyUnlockedBadges = await evaluateBadges()

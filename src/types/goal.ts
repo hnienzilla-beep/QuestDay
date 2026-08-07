@@ -8,6 +8,8 @@ export interface SubStep {
   completed: boolean
   completedAt: string | null
   order: number
+  /** Letzte inhaltliche Änderung – entscheidet beim Vault-Sync, welche Seite gewinnt. */
+  updatedAt: string
 }
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'custom'
@@ -40,6 +42,8 @@ export interface Goal {
   completedAt: string | null
   /** null = einmaliges Ziel (Standard), sonst wiederholender Zyklus. */
   recurrence: GoalRecurrence | null
+  /** Letzte inhaltliche Änderung – entscheidet beim Vault-Sync, welche Seite gewinnt. */
+  updatedAt: string
 }
 
 export interface GoalCycleCompletion {

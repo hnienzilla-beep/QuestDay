@@ -21,6 +21,7 @@ export async function addOneOffTask(input: {
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     completed: false,
     completedAt: null,
   }
@@ -46,6 +47,7 @@ export async function addRecurringTask(input: {
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     completed: false,
     completedAt: null,
   }
@@ -75,6 +77,7 @@ export async function addAppointment(input: {
     reminderTime: input.reminderTime,
     reminderFired: false,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     completed: false,
     completedAt: null,
   }

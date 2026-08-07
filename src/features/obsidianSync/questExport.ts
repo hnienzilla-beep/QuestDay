@@ -1,11 +1,17 @@
 import { db } from '../../db/db'
 import { todayISODate } from '../../utils/dateUtils'
 import { tasksDueOnDate, isTaskDoneOnDate } from '../tasks/taskRepository'
-import { upsertFile } from './githubApi'
 import { cleanTitle, frontmatter } from './markdown'
 
-/** Exportiert die heutigen Quests (erledigt + offen) als Markdown-Checkliste ins Vault-Repo. */
-export async function syncQuestsHeute(): Promise<void> {
+export function questFilePath(dateStr: string): string {
+  return `10-Quests/${dateStr}.md`
+}
+
+/**
+ * Rendert die heutigen Quests (erledigt + offen) als Markdown-Checkliste.
+ * Reiner Tagesbericht – diese Datei wird nicht zurückgelesen.
+ */
+export async function renderQuestFile(): Promise<{ path: string; content: string }> {
   const dateStr = todayISODate()
   const dueTasks = await tasksDueOnDate(dateStr)
   const doneFlags = await Promise.all(dueTasks.map((t) => isTaskDoneOnDate(t, dateStr)))
@@ -36,5 +42,5 @@ export async function syncQuestsHeute(): Promise<void> {
   })
   const body = lines.length > 0 ? lines.join('\n') + '\n' : '_Heute keine Aufgaben fällig._\n'
 
-  await upsertFile(`10-Quests/${dateStr}.md`, head + body, `Sync ${dateStr}: Quests`)
+  return { path: questFilePath(dateStr), content: head + body }
 }

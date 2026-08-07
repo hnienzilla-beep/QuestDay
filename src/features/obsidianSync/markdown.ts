@@ -8,6 +8,34 @@ export const WEEKDAY_NAMES = [
   'Samstag',
 ]
 
+/**
+ * Stabile Zuordnung zwischen App-Datensatz und Vault-Zeile. Listeneinträge bekommen eine
+ * Obsidian-Block-ID (`^qd-<uuid>`, in der Lesenansicht unsichtbar und verlinkbar),
+ * Überschriften einen Obsidian-Kommentar (`%%qd-<uuid>%%`) – dort ist keine Block-ID erlaubt.
+ * Zeilen ohne Marker gelten beim Import als neu angelegt.
+ */
+const ID_PREFIX = 'qd-'
+
+export function blockId(id: string): string {
+  return ` ^${ID_PREFIX}${id}`
+}
+
+export function commentId(id: string): string {
+  return ` %%${ID_PREFIX}${id}%%`
+}
+
+const BLOCK_ID_RE = new RegExp(`\\s*\\^${ID_PREFIX}([0-9a-fA-F-]+)\\s*$`)
+const COMMENT_ID_RE = new RegExp(`\\s*%%${ID_PREFIX}([0-9a-fA-F-]+)%%\\s*$`)
+
+/** Trennt einen Zeilen-Marker ab und liefert Resttext plus ID (null = neue Zeile). */
+export function splitId(line: string): { text: string; id: string | null } {
+  for (const re of [BLOCK_ID_RE, COMMENT_ID_RE]) {
+    const match = line.match(re)
+    if (match) return { text: line.slice(0, match.index).trimEnd(), id: match[1] }
+  }
+  return { text: line.trimEnd(), id: null }
+}
+
 /** Zeilenumbrüche entfernen, damit ein Titel eine Markdown-Listenzeile nicht zerreißt. */
 export function cleanTitle(title: string): string {
   return title.replace(/\r?\n/g, ' ').trim()

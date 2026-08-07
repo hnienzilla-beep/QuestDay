@@ -12,7 +12,7 @@ QuestDay ist ein Aufgaben-Planer als installierbare Progressive Web App (PWA), o
 - **Gamification**: XP & Level, Tages-Streaks, Badges, freischaltbare Belohnungen (virtuelle Trophäen, Farbdesigns, selbst definierte echte Belohnungen)
 - **Ansichten**: Heute, Woche, Statistik (mit Diagrammen), Profil
 - **.ics-Export** für Termine (einzeln oder als Wochen-Export), inkl. iOS-Sharesheet
-- **Obsidian-Sync**: schreibt Quests, To-dos und Ziele als Markdown-Dateien in ein GitHub-Repo (siehe unten)
+- **Obsidian-Sync**: gleicht To-dos und Ziele in beide Richtungen mit einem GitHub-Repo ab (siehe unten)
 
 ## Tech-Stack
 
@@ -25,6 +25,7 @@ npm install
 npm run dev       # http://localhost:5173/QuestDay/
 npm run build     # Produktions-Build nach dist/
 npm run preview   # Produktions-Build lokal testen (Service Worker aktiv)
+npm test          # Vitest: Round-Trip und Merge-Regeln des Vault-Syncs
 ```
 
 Service Worker, Manifest und Benachrichtigungen lassen sich vollständig nur im **Produktions-Build** (`build` + `preview`) testen, da `vite dev` standardmäßig keinen Service Worker registriert.
@@ -63,15 +64,40 @@ Stattdessen prüft die App beim Start, alle 60 Sekunden während sie offen ist, 
 
 Unter **Profil → Obsidian-Sync** lassen sich GitHub-Benutzername, Repo-Name und ein Personal Access Token (Scope `repo` bzw. Fine-grained mit Schreibrecht auf *Contents*) hinterlegen. Die Zugangsdaten bleiben – wie alle anderen Daten – ausschließlich lokal im Browser (`localStorage`).
 
-Ein Sync schreibt drei Markdown-Dateien ins Vault-Repo:
+Ein Sync betrifft drei Markdown-Dateien:
 
-| Datei | Inhalt |
-|---|---|
-| `10-Quests/yyyy-MM-dd.md` | Die heute fälligen Quests als Checkliste, plus XP/Level/Streak im Frontmatter |
-| `20-Todos/To-dos.md` | Alle To-dos, gruppiert nach Überfällig, Heute, Demnächst, Ohne Datum, Termine, Wiederkehrend und Erledigt (letzte 30 Tage) |
-| `30-Ziele/Ziele.md` | Alle Ziele mit Teilschritten – offen, wiederkehrend (inkl. aktuellem Zyklus), beendete Wiederholungen und erledigte Ziele |
+| Datei | Inhalt | Richtung |
+|---|---|---|
+| `10-Quests/yyyy-MM-dd.md` | Die heute fälligen Quests als Checkliste, plus XP/Level/Streak im Frontmatter | nur Export |
+| `20-Todos/To-dos.md` | Alle To-dos, gruppiert nach Überfällig, Heute, Demnächst, Ohne Datum, Termine, Wiederkehrend und Erledigt (letzte 30 Tage) | beide Richtungen |
+| `30-Ziele/Ziele.md` | Alle Ziele mit Teilschritten – offen, wiederkehrend (inkl. aktuellem Zyklus), beendete Wiederholungen und erledigte Ziele | beide Richtungen |
 
-Alle drei Dateien werden bei jedem Sync komplett neu geschrieben (bestehende Datei wird überschrieben) und tragen im Frontmatter Kennzahlen, die sich in Obsidian per Dataview auswerten lassen. Fälligkeitsdaten stehen im Format des *Tasks*-Plugins (`📅`, `✅`, `🔁`).
+Im Frontmatter stehen Kennzahlen, die sich in Obsidian per Dataview auswerten lassen. Fälligkeits- und Wiederholungsangaben nutzen das Format des *Tasks*-Plugins (`📅`, `✅`, `🔁`).
+
+### Änderungen aus Obsidian
+
+In `To-dos.md` und `Ziele.md` darfst du direkt in Obsidian arbeiten – der nächste Sync übernimmt es in die App:
+
+- **Abhaken und Haken entfernen** – inklusive XP, Streak und Statistik, genau wie beim Abhaken in der App
+- **Titel, Kategorie, Fälligkeitsdatum, Terminzeit und Ort ändern**
+- **Neue Zeilen schreiben** – daraus werden neue To-dos bzw. Teilschritte; eine neue `###`-Überschrift legt ein neues Ziel an
+- **Zeilen löschen** – der zugehörige Eintrag verschwindet auch in der App
+
+Nicht zurückgelesen werden die abgeleiteten Angaben: Wiederholungsregel, Zyklus-Status, Fortschritt und Erinnerungszeit gehören der App und werden bei jedem Export neu geschrieben. Ein in Obsidian neu angelegtes Ziel ist deshalb immer ein einmaliges Ziel.
+
+### Wie Einträge wiedererkannt werden
+
+Jede exportierte Zeile trägt einen unsichtbaren Marker mit der Datenbank-ID: Listeneinträge eine Obsidian-Block-ID (`^qd-…`), Ziel-Überschriften einen Obsidian-Kommentar (`%%qd-…%%`). Beides ist in der Leseansicht unsichtbar. Dadurch überleben Einträge auch ein Umbenennen. Eine Zeile **ohne** Marker gilt als neu angelegt – kopierst du also eine Zeile samt Marker, wird die Kopie ignoriert; lösche den Marker, wenn daraus ein eigener Eintrag werden soll.
+
+### Konflikte
+
+Nach jedem Sync merkt sich die App den geschriebenen Dateistand als Baseline. Beim nächsten Sync zeigt der Vergleich mit der Datei im Repo, was in Obsidian geändert wurde – ein unveränderter alter Export ist so von einer echten Änderung unterscheidbar.
+
+- Hat nur eine Seite geändert, gewinnt diese Seite.
+- Haben **beide** geändert, gewinnt die jüngere: app-seitig der Zeitstempel `updatedAt` des Eintrags, vault-seitig das Commit-Datum der Datei.
+- Ein in der App gelöschter Eintrag bleibt gelöscht, auch wenn er im Vault noch bearbeitet wurde – für Löschungen gibt es keinen Zeitstempel zum Vergleichen.
+- Beim **allerersten** Sync nach dem Einrichten existiert noch keine Baseline. Dann wird nur exportiert, denn ein vorhandener Vault-Inhalt wäre nicht von einer Änderung zu unterscheiden.
+- Lässt sich eine Datei nicht auswerten (Überschrift entfernt, Datei umgebaut), wird der Import übersprungen und nur exportiert – lieber kein Import als Datenverlust durch einen kaputten Parse.
 
 ### Wann synchronisiert wird
 
@@ -79,7 +105,7 @@ Alle drei Dateien werden bei jedem Sync komplett neu geschrieben (bestehende Dat
 - **Regelmäßig im eingestellten Intervall**: standardmäßig alle 30 Minuten, einstellbar von 15 Minuten bis 12 Stunden oder auf **"Nur manuell"**. Geprüft wird beim App-Start, jede Minute während die App offen ist, beim Zurückkehren in den Vordergrund und sobald wieder eine Internetverbindung besteht.
 - **Manuell** über **"Jetzt synchronisieren"**.
 
-Wie bei den Erinnerungen gilt: Ist die App komplett geschlossen, läuft kein Hintergrundcode. Ein fällig gewordener Sync wird dann beim nächsten Öffnen sofort nachgeholt. Parallele Syncs werden zusammengefasst, und die drei Dateien werden nacheinander geschrieben, damit GitHub pro Datei mit einem aktuellen SHA arbeitet.
+Wie bei den Erinnerungen gilt: Ist die App komplett geschlossen, läuft kein Hintergrundcode. Ein fällig gewordener Sync wird dann beim nächsten Öffnen sofort nachgeholt. Parallele Syncs werden zusammengefasst, und die Dateien werden nacheinander verarbeitet, damit GitHub pro Datei mit einem aktuellen SHA arbeitet.
 
 ## Deployment (GitHub Pages)
 

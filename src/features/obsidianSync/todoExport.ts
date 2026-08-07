@@ -1,8 +1,7 @@
 import { db } from '../../db/db'
 import type { Task, OneOffTask, RecurringTask, Appointment } from '../../types/task'
 import { todayISODate } from '../../utils/dateUtils'
-import { upsertFile } from './githubApi'
-import { cleanTitle, frontmatter, section, WEEKDAY_NAMES } from './markdown'
+import { blockId, cleanTitle, frontmatter, section, WEEKDAY_NAMES } from './markdown'
 
 export const TODO_FILE_PATH = '20-Todos/To-dos.md'
 
@@ -16,7 +15,7 @@ function recurrenceLabel(task: RecurringTask): string {
 }
 
 function openLine(task: Task, suffix = ''): string {
-  return `- [ ] ${cleanTitle(task.title)} (${task.category})${suffix}`
+  return `- [ ] ${cleanTitle(task.title)} (${task.category})${suffix}${blockId(task.id)}`
 }
 
 function oneOffLine(task: OneOffTask): string {
@@ -31,12 +30,12 @@ function appointmentLine(task: Appointment): string {
 
 function recurringLine(task: RecurringTask, doneToday: boolean): string {
   const box = doneToday ? '[x]' : '[ ]'
-  return `- ${box} ${cleanTitle(task.title)} (${task.category}) 🔁 ${recurrenceLabel(task)}`
+  return `- ${box} ${cleanTitle(task.title)} (${task.category}) 🔁 ${recurrenceLabel(task)}${blockId(task.id)}`
 }
 
 function doneLine(task: Task): string {
   const date = task.completedAt ? task.completedAt.slice(0, 10) : ''
-  return `- [x] ${cleanTitle(task.title)} (${task.category})${date ? ` ✅ ${date}` : ''}`
+  return `- [x] ${cleanTitle(task.title)} (${task.category})${date ? ` ✅ ${date}` : ''}${blockId(task.id)}`
 }
 
 function byDueDate(a: OneOffTask, b: OneOffTask): number {
@@ -53,8 +52,8 @@ function isoDateDaysAgo(days: number, todayStr: string): string {
   return date.toISOString().slice(0, 10)
 }
 
-/** Exportiert alle To-dos (offen, Termine, wiederkehrend, kürzlich erledigt) als Markdown ins Vault-Repo. */
-export async function syncTodos(): Promise<void> {
+/** Rendert alle To-dos (offen, Termine, wiederkehrend, kürzlich erledigt) als Markdown. */
+export async function renderTodoFile(): Promise<string> {
   const todayStr = todayISODate()
   const [tasks, todaysCompletions] = await Promise.all([
     db.tasks.toArray(),
@@ -108,5 +107,5 @@ export async function syncTodos(): Promise<void> {
   const hasContent = blocks.length > 2
   const body = hasContent ? blocks.join('\n') : '# To-dos\n\n_Keine To-dos vorhanden._\n'
 
-  await upsertFile(TODO_FILE_PATH, head + body, `Sync ${todayStr}: To-dos`)
+  return head + body
 }

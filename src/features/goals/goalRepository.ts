@@ -48,6 +48,7 @@ export async function addGoal(input: {
     targetDate: input.targetDate,
     completedAt: null,
     recurrence: buildRecurrence(input.recurrence, todayISODate()),
+    updatedAt: new Date().toISOString(),
   }
   await db.goals.add(goal)
 
@@ -58,6 +59,7 @@ export async function addGoal(input: {
     completed: false,
     completedAt: null,
     order: index,
+    updatedAt: new Date().toISOString(),
   }))
   if (subSteps.length > 0) {
     await db.subSteps.bulkAdd(subSteps)
@@ -92,15 +94,19 @@ export async function updateGoal(id: string, patch: GoalUpdateInput, subStepChan
     recurrence.stoppedAt = existing.recurrence.stoppedAt
   }
 
+  const now = new Date().toISOString()
   await db.goals.update(id, {
     title: patch.title,
     target: patch.target,
     category: patch.category,
     targetDate: patch.targetDate,
     recurrence,
+    updatedAt: now,
   })
 
-  await Promise.all(subStepChanges.updated.map((s) => db.subSteps.update(s.id, { title: s.title })))
+  await Promise.all(
+    subStepChanges.updated.map((s) => db.subSteps.update(s.id, { title: s.title, updatedAt: now })),
+  )
 
   if (subStepChanges.added.length > 0) {
     const currentSteps = await db.subSteps.where('goalId').equals(id).toArray()
@@ -112,6 +118,7 @@ export async function updateGoal(id: string, patch: GoalUpdateInput, subStepChan
       completed: false,
       completedAt: null,
       order: nextOrder + i,
+      updatedAt: now,
     }))
     await db.subSteps.bulkAdd(newSteps)
   }
@@ -125,7 +132,8 @@ export async function updateGoal(id: string, patch: GoalUpdateInput, subStepChan
     const remainingSteps = await db.subSteps.where('goalId').equals(id).toArray()
     const allDone = remainingSteps.length > 0 && remainingSteps.every((s) => s.completed)
     await db.goals.update(id, {
-      completedAt: allDone ? (existing.completedAt ?? new Date().toISOString()) : null,
+      completedAt: allDone ? (existing.completedAt ?? now) : null,
+      updatedAt: now,
     })
   }
 
@@ -188,6 +196,10 @@ export async function currentCycleStatus(goal: Goal): Promise<CycleStatus | null
 export async function stopGoalRecurrence(goalId: string): Promise<void> {
   const goal = await db.goals.get(goalId)
   if (!goal?.recurrence || goal.recurrence.stoppedAt) return
-  await db.goals.update(goalId, { recurrence: { ...goal.recurrence, stoppedAt: new Date().toISOString() } })
+  const stoppedAt = new Date().toISOString()
+  await db.goals.update(goalId, {
+    recurrence: { ...goal.recurrence, stoppedAt },
+    updatedAt: stoppedAt,
+  })
   triggerAutoSync()
 }

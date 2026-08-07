@@ -80,7 +80,9 @@ export default function ObsidianSyncPanel() {
     <div className="obsidian-sync-panel">
       <div className="section-title">Obsidian-Sync</div>
       <div className="obsidian-sync-hint">
-        Schreibt heutige Quests, alle To-dos und alle Ziele als Markdown-Dateien in dein Vault-Repo.
+        Gleicht To-dos und Ziele in beide Richtungen mit deinem Vault-Repo ab: Änderungen aus Obsidian
+        werden übernommen, Änderungen aus der App zurückgeschrieben. Bei einer Änderung auf beiden Seiten
+        gewinnt die jüngere. Die Quest-Datei ist ein reiner Tagesbericht und wird nicht zurückgelesen.
       </div>
       <div className="obsidian-sync-fields">
         <label>

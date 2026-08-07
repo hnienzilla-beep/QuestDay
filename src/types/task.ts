@@ -14,6 +14,8 @@ interface BaseTask {
   completedAt: string | null
   reminderTime: string | null
   reminderFired: boolean
+  /** Letzte inhaltliche Änderung – entscheidet beim Vault-Sync, welche Seite gewinnt. */
+  updatedAt: string
 }
 
 export interface OneOffTask extends BaseTask {

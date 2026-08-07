@@ -2,8 +2,7 @@ import { db } from '../../db/db'
 import type { Goal, GoalRecurrence, SubStep } from '../../types/goal'
 import { todayISODate } from '../../utils/dateUtils'
 import { mostRecentDueDateOnOrBefore } from '../goals/goalCycles'
-import { upsertFile } from './githubApi'
-import { cleanTitle, frontmatter, section, WEEKDAY_NAMES } from './markdown'
+import { blockId, cleanTitle, commentId, frontmatter, section, WEEKDAY_NAMES } from './markdown'
 
 export const GOAL_FILE_PATH = '30-Ziele/Ziele.md'
 
@@ -23,11 +22,11 @@ function recurrenceLabel(recurrence: GoalRecurrence): string {
 }
 
 function checkboxLine(step: SubStep, done: boolean): string {
-  return `- [${done ? 'x' : ' '}] ${cleanTitle(step.title)}`
+  return `- [${done ? 'x' : ' '}] ${cleanTitle(step.title)}${blockId(step.id)}`
 }
 
 function goalBlock(goal: Goal, facts: string[], stepLines: string[]): string[] {
-  const lines = [`### ${cleanTitle(goal.title)}`, '', ...facts.map((f) => `- ${f}`)]
+  const lines = [`### ${cleanTitle(goal.title)}${commentId(goal.id)}`, '', ...facts.map((f) => `- ${f}`)]
   if (stepLines.length > 0) lines.push('', ...stepLines)
   lines.push('')
   return lines
@@ -83,8 +82,8 @@ async function recurringGoalBlock(goal: Goal, steps: SubStep[], todayStr: string
   return goalBlock(goal, facts, stepLines)
 }
 
-/** Exportiert alle Ziele samt Teilschritten und Zyklus-Status als Markdown ins Vault-Repo. */
-export async function syncGoals(): Promise<void> {
+/** Rendert alle Ziele samt Teilschritten und Zyklus-Status als Markdown. */
+export async function renderGoalFile(): Promise<string> {
   const todayStr = todayISODate()
   const [goals, allSteps] = await Promise.all([db.goals.toArray(), db.subSteps.toArray()])
 
@@ -132,5 +131,5 @@ export async function syncGoals(): Promise<void> {
 
   const body = blocks.length > 2 ? blocks.join('\n') : '# Ziele\n\n_Keine Ziele vorhanden._\n'
 
-  await upsertFile(GOAL_FILE_PATH, head + body, `Sync ${todayStr}: Ziele`)
+  return head + body
 }
