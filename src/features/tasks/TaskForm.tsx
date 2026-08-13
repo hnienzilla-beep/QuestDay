@@ -158,7 +158,7 @@ export default function TaskForm({ onClose, defaultDate, task }: Props) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form className="sheet-form" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="title">Titel</label>
             <input
@@ -273,9 +273,11 @@ export default function TaskForm({ onClose, defaultDate, task }: Props) {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-block">
-            {isEdit ? 'Änderungen speichern' : 'Aufgabe speichern'}
-          </button>
+          <div className="sheet-footer">
+            <button type="submit" className="btn btn-primary btn-block">
+              {isEdit ? 'Änderungen speichern' : 'Aufgabe speichern'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
