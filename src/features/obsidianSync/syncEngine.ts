@@ -140,6 +140,8 @@ async function runSyncOnce(): Promise<SyncResult> {
 
   // --- 4. Import (das Repo gewinnt) ----------------------------------------
   const conflictBackups: TreeMutation[] = []
+  /** Gelesene und verstandene Pfade - Grundlage der Prüfung auf Verwaistes weiter unten. */
+  const appliedPaths: string[] = []
   if (toImport.length > 0) {
     const batch = toImport.slice(0, MAX_BLOB_FETCHES)
     if (toImport.length > batch.length) {
@@ -176,6 +178,7 @@ async function runSyncOnce(): Promise<SyncResult> {
       }
       delete quarantine[path]
       outcome = mergeOutcomes(outcome, applied)
+      appliedPaths.push(path)
       // Erst wenn die Datei sauber verarbeitet wurde, gilt sie als abgeglichen.
       agreedShas[path] = remoteSha
     }
@@ -200,15 +203,33 @@ async function runSyncOnce(): Promise<SyncResult> {
     mutations.push({ path, content })
   }
 
+  // Eine Datei, die gerade eingelesen wurde und danach trotzdem in keinem gerenderten Pfad
+  // auftaucht, gehört zu nichts, was die App kennt. Sie zu löschen hieße, fremde Inhalte
+  // wegzuräumen, nur weil der Importer nichts damit anzufangen wusste - genau das hat
+  // früher im Vault angelegte Ziele verschwinden lassen.
+  const orphaned = new Set(appliedPaths.filter((path) => !rendered.files.has(path)))
+  for (const path of orphaned) {
+    // Bewusst nicht als abgeglichen merken: sonst liefe die Datei im nächsten Lauf ohne
+    // erneutes Lesen direkt in die Löschregel unten.
+    delete agreedShas[path]
+  }
+
   const deletions: TreeMutation[] = []
   for (const path of Object.keys(remoteShas)) {
     if (rendered.files.has(path)) continue
     if (!classifyPath(path)) continue
     if (path.startsWith(`${CONFLICTS_DIR}/`)) continue
+    if (orphaned.has(path)) continue
     // Nur löschen, wenn die Repo-Seite seit dem letzten Abgleich unverändert ist -
     // sonst hätte jemand die Datei gerade erst bearbeitet.
     if (remoteShas[path] !== agreedShas[path]) continue
     deletions.push({ path, content: null })
+  }
+
+  for (const path of orphaned) {
+    result.warnings.push(
+      `"${path}" gehört zu keinem Eintrag in der App - liegen gelassen. In Obsidian löschen, wenn die Datei weg soll.`,
+    )
   }
   // Letzte Sicherung: eine leergeräumte lokale Datenbank (Browserdaten gelöscht, aber
   // localStorage überlebt) würde sonst das komplette Vault im Repo mitreißen.

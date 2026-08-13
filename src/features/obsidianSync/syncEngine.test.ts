@@ -302,6 +302,30 @@ describe('runSync', () => {
     expect(await db.subSteps.where('goalId').equals('g1').count()).toBe(0)
   })
 
+  it('löscht eine Datei nicht, die zu keinem Eintrag in der App gehört', async () => {
+    await db.tasks.put(oneOff({ id: 'o1', title: 'Müll rausbringen', dueDate: todayISODate() }))
+    await runSync()
+
+    // Eine Tagesdatei weit in der Vergangenheit: lesbar, aber ohne Inhalt, den die App
+    // kennt - sie rendert für dieses Datum keine Datei.
+    const alt = 'QuestDay/Tage/2020-01-01.md'
+    github.files.set(
+      alt,
+      ['---', 'typ: questday-tag', 'datum: 2020-01-01', '---', '', '## Aufgaben', '', '## Termine', '', '## Ziele', ''].join('\n'),
+    )
+    github.touch()
+
+    const result = await runSync()
+
+    expect([...github.files.keys()]).toContain(alt)
+    expect(result.warnings.join(' ')).toContain(alt)
+
+    // Und auch im Folgelauf nicht: der Schutz darf nicht nur einmal greifen.
+    github.touch()
+    await runSync()
+    expect([...github.files.keys()]).toContain(alt)
+  })
+
   it('legt ein im Repo neu angelegtes Ziel in der App an', async () => {
     await runSync()
 

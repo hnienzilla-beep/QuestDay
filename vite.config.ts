@@ -9,6 +9,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Die Registrierung übernimmt src/features/pwa/appUpdates.ts, damit dort zusätzlich
+      // beim Zurückkehren in die App auf einen neuen Stand geprüft werden kann. Ohne das
+      // hier stünde daneben noch das automatisch eingefügte Skript.
+      injectRegister: null,
       includeAssets: ['icons/*.png'],
       manifest: {
         name: 'ToDo',
