@@ -209,7 +209,7 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form className="sheet-form" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="goalTitle">Titel</label>
             <input
@@ -273,9 +273,11 @@ export default function GoalForm({ onClose, goal, existingSubSteps }: Props) {
             </button>
           </div>
 
-          <button type="submit" className="btn btn-primary btn-block">
-            {isEdit ? 'Änderungen speichern' : 'Ziel speichern'}
-          </button>
+          <div className="sheet-footer">
+            <button type="submit" className="btn btn-primary btn-block">
+              {isEdit ? 'Änderungen speichern' : 'Ziel speichern'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
