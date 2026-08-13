@@ -248,6 +248,85 @@ describe('applyGoalFile - Plan-Phase', () => {
     const second = await roundTripGoal((c) => c)
     expect(second).toMatchObject({ created: 0, updated: 0, deleted: 0 })
   })
+
+  it('legt ein in Obsidian neu geschriebenes Ziel samt Teilschritten an', async () => {
+    const datei = [
+      '---',
+      'typ: questday-ziel',
+      'id: neu-1',
+      'kategorie: Arbeit',
+      'erstellt: 2026-08-13',
+      'zieldatum: 2026-08-20',
+      'wiederholung: keine',
+      '---',
+      '',
+      '# Hochzeit Packliste',
+      '',
+      'Drei Tage Hochzeit ab Freitag.',
+      '',
+      '## Teilschritte',
+      '',
+      '- [ ] Anzug einpacken',
+      '- [x] Hotel bestätigen',
+    ].join('\n')
+
+    const parsed = parseGoalFile(datei)
+    if (!parsed.ok) throw new Error(`Parse-Gate: ${parsed.reason}`)
+    const outcome = await applyGoalFile(parsed.value, TODAY)
+
+    const angelegt = await db.goals.get('neu-1')
+    expect(angelegt).toMatchObject({
+      title: 'Hochzeit Packliste',
+      target: 'Drei Tage Hochzeit ab Freitag.',
+      categoryId: CAT_ARBEIT.id,
+      targetDate: '2026-08-20',
+    })
+    // Erstellungsdatum kommt aus der Datei, nicht vom Sync-Tag - sonst schriebe die App
+    // die Datei nach dem Import sofort wieder um.
+    expect(angelegt?.createdAt.slice(0, 10)).toBe('2026-08-13')
+
+    const schritte = await db.subSteps.where('goalId').equals('neu-1').toArray()
+    expect(schritte.map((s) => s.title).sort()).toEqual(['Anzug einpacken', 'Hotel bestätigen'])
+    expect(schritte.find((s) => s.title === 'Hotel bestätigen')?.completed).toBe(true)
+    // 1 Ziel + 2 Teilschritte
+    expect(outcome.created).toBe(3)
+  })
+
+  it('ist nach dem ersten Zurückschreiben stabil', async () => {
+    const datei = [
+      '---',
+      'typ: questday-ziel',
+      'id: neu-2',
+      'kategorie: Arbeit',
+      'erstellt: 2026-08-13',
+      'zieldatum: null',
+      'wiederholung: keine',
+      '---',
+      '',
+      '# Umzug planen',
+      '',
+      'Kisten besorgen.',
+      '',
+      '## Teilschritte',
+      '',
+      '- [ ] Kartons kaufen',
+    ].join('\n')
+
+    const parsed = parseGoalFile(datei)
+    if (!parsed.ok) throw new Error(`Parse-Gate: ${parsed.reason}`)
+    await applyGoalFile(parsed.value, TODAY)
+
+    // So läuft es echt: nach dem Import schreibt die App die Datei einmal zurück - erst
+    // dadurch trägt die Teilschritt-Zeile ihren ^qd--Anker. Ab da ändert sich nichts mehr.
+    const snapshot = await loadSnapshot(TODAY)
+    const neu = snapshot.goals.find((g) => g.id === 'neu-2')
+    if (!neu) throw new Error('Ziel wurde nicht angelegt')
+    const zurueckgeschrieben = parseGoalFile(renderGoalFile(snapshot, neu))
+    if (!zurueckgeschrieben.ok) throw new Error(`Parse-Gate: ${zurueckgeschrieben.reason}`)
+
+    const zweiter = await applyGoalFile(zurueckgeschrieben.value, TODAY)
+    expect(zweiter).toMatchObject({ created: 0, updated: 0, deleted: 0 })
+  })
 })
 
 describe('applyTasksFile', () => {

@@ -344,12 +344,50 @@ function buildRecurrence(
   }
 }
 
+/**
+ * Legt ein Ziel an, dessen ID die App noch nicht kennt.
+ *
+ * Ein in der App *gelöschtes* Ziel kann so nicht wieder auferstehen: dessen Datei ist
+ * gegenüber dem letzten Abgleich unverändert, und der Drei-Wege-Vergleich in `syncEngine`
+ * reicht unveränderte Dateien gar nicht erst zum Import weiter - sie werden gelöscht.
+ * Hier landet also nur, was im Repo neu ist oder sich dort geändert hat.
+ *
+ * Erstellungsdatum und Kategorie kommen aus der Datei, damit die Datei nach dem Import
+ * unverändert zurückgeschrieben wird und kein Ping-Pong entsteht.
+ */
+async function createGoalFromFile(
+  parsed: ParsedGoalFile,
+  today: string,
+  outcome: ImportOutcome,
+): Promise<Goal> {
+  const categories = await db.categories.toArray()
+  const resolved = resolveCategory(categories, parsed.categoryName)
+  if (resolved === undefined) {
+    warnUnknownCategory(parsed.categoryName, `Ziel "${parsed.title}"`, outcome)
+  }
+
+  const goal: Goal = {
+    id: parsed.id,
+    title: parsed.title,
+    target: parsed.target,
+    categoryId: resolved ?? null,
+    // Feste Uhrzeit wie bei importierten Erledigungen: der Zeitstempel muss auf jedem
+    // Gerät gleich ausfallen, sonst rendert jedes Gerät eine andere Datei.
+    createdAt: importedCompletedAt(parsed.createdDate ?? today),
+    targetDate: parsed.targetDate,
+    completedAt: null,
+    recurrence: buildRecurrence(parsed, null, today),
+  }
+  await db.goals.add(goal)
+  outcome.created += 1
+  return goal
+}
+
 export async function applyGoalFile(parsed: ParsedGoalFile, today: string): Promise<ImportOutcome> {
   const outcome = emptyOutcome()
-  const goal = await db.goals.get(parsed.id)
-  // Eine Ziel-Datei legt kein Ziel an: Ziele entstehen in der App. Eine verwaiste Datei
-  // wird beim nächsten Schreiben entfernt.
-  if (!goal) return outcome
+  // Eine unbekannte ID ist ein in Obsidian neu angelegtes Ziel. Die Teilschritte darin
+  // legt die Schleife weiter unten an, als wären sie neu hinzugekommen.
+  const goal = (await db.goals.get(parsed.id)) ?? (await createGoalFromFile(parsed, today, outcome))
 
   const label = `Ziel "${goal.title}"`
   const categories = await db.categories.toArray()
