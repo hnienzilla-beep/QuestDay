@@ -140,6 +140,8 @@ export interface ParsedGoalFile {
   title: string
   target: string
   categoryName: string | null
+  /** `erstellt` aus dem Frontmatter; nur beim Anlegen eines neuen Ziels ausgewertet. */
+  createdDate: string | null
   targetDate: string | null
   recurrence: ParsedRecurrence | null
   reminderTime: string | null
@@ -157,6 +159,9 @@ export function parseGoalFile(content: string): ParseResult<ParsedGoalFile> {
   if (!id) return fail('Ziel-ID fehlt im Frontmatter')
 
   const categoryName = readOptional(parsed.fields, 'kategorie')
+
+  const createdDate = readOptional(parsed.fields, 'erstellt')
+  if (createdDate !== null && !DATE_RE.test(createdDate)) return fail('erstellt ist kein Datum')
 
   const targetDate = readOptional(parsed.fields, 'zieldatum')
   if (targetDate !== null && !DATE_RE.test(targetDate)) return fail('zieldatum ist kein Datum')
@@ -192,6 +197,7 @@ export function parseGoalFile(content: string): ParseResult<ParsedGoalFile> {
       title,
       target,
       categoryName,
+      createdDate,
       targetDate,
       recurrence,
       reminderTime,

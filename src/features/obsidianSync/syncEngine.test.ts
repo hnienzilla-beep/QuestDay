@@ -179,7 +179,9 @@ describe('runSync', () => {
   })
 
   it('übernimmt einen im Repo gesetzten Haken in die App', async () => {
-    await db.tasks.put(oneOff({ id: 'o1', title: 'Müll rausbringen' }))
+    // Fällig am echten heutigen Tag, nicht am Fixture-Datum: die Engine schreibt die
+    // Tagesdatei für todayISODate(), und nur dort steht die Zeile, die hier angehakt wird.
+    await db.tasks.put(oneOff({ id: 'o1', title: 'Müll rausbringen', dueDate: todayISODate() }))
     await runSync()
 
     const dayPath = `QuestDay/Tage/${todayISODate()}.md`
@@ -294,6 +296,46 @@ describe('runSync', () => {
     await db.goals.delete('g1')
     await runSync()
     expect([...github.files.keys()]).not.toContain('QuestDay/Ziele/marathon.md')
+    // Seit eine Ziel-Datei ein Ziel anlegen darf, ist das die eigentliche Zusage: die noch
+    // im Repo liegende Datei darf das gelöschte Ziel nicht wieder auferstehen lassen.
+    expect(await db.goals.get('g1')).toBeUndefined()
+    expect(await db.subSteps.where('goalId').equals('g1').count()).toBe(0)
+  })
+
+  it('legt ein im Repo neu angelegtes Ziel in der App an', async () => {
+    await runSync()
+
+    github.files.set(
+      'QuestDay/Ziele/hochzeit-packliste.md',
+      [
+        '---',
+        'typ: questday-ziel',
+        'id: repo-1',
+        'kategorie: null',
+        'erstellt: 2026-08-13',
+        'zieldatum: null',
+        'wiederholung: keine',
+        '---',
+        '',
+        '# Hochzeit Packliste',
+        '',
+        'Drei Tage Hochzeit.',
+        '',
+        '## Teilschritte',
+        '',
+        '- [ ] Anzug einpacken',
+        '',
+      ].join('\n'),
+    )
+    github.touch()
+
+    await runSync()
+
+    const angelegt = await db.goals.get('repo-1')
+    expect(angelegt?.title).toBe('Hochzeit Packliste')
+    expect(await db.subSteps.where('goalId').equals('repo-1').count()).toBe(1)
+    // Die Datei bleibt liegen und wird nicht als verwaist weggeräumt.
+    expect([...github.files.keys()]).toContain('QuestDay/Ziele/hochzeit-packliste.md')
   })
 })
 
