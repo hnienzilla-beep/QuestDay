@@ -180,6 +180,35 @@ describe('applyDayFile - Neuanlage', () => {
     await roundTripDay((c) => c.replace('## Aufgaben', '## Aufgaben\n\n- [x] Schon erledigt (Arbeit)'))
     expect(await db.taskCompletions.count()).toBe(1)
   })
+
+  it('legt auch eine Zeile mit unbekanntem Anker an und behält deren ID', async () => {
+    await reset()
+    // So schreibt ein Werkzeug von außen: Anker gleich mitgeliefert, obwohl die App
+    // diese ID nie vergeben hat. Früher fiel die Zeile damit unter "in der App gelöscht"
+    // und verschwand beim nächsten Schreiben.
+    await roundTripDay((c) =>
+      c.replace(
+        '## Aufgaben',
+        '## Aufgaben\n\n- [ ] 09:00 Koffer packen (Arbeit) ^qd-ed0f9ab7-0594-49ad-bb82-c5af4aecd3dd',
+      ),
+    )
+
+    const task = await db.tasks.get('ed0f9ab7-0594-49ad-bb82-c5af4aecd3dd')
+    expect(task).toMatchObject({ title: 'Koffer packen', time: '09:00', type: 'oneoff' })
+    expect((task as { dueDate: string }).dueDate).toBe(TODAY)
+  })
+
+  it('legt aus derselben Zeile beim zweiten Lauf keine Dublette an', async () => {
+    await reset()
+    const mitAnker = (c: string) =>
+      c.replace('## Aufgaben', '## Aufgaben\n\n- [ ] Koffer packen (Arbeit) ^qd-11111111-2222-3333-4444-555555555555')
+
+    await roundTripDay(mitAnker)
+    const zweiter = await roundTripDay(mitAnker)
+
+    expect(await db.tasks.count()).toBe(1)
+    expect(zweiter).toMatchObject({ created: 0, deleted: 0 })
+  })
 })
 
 describe('applyGoalFile - Plan-Phase', () => {
