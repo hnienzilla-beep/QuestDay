@@ -262,12 +262,24 @@ export async function applyDayFile(parsed: ParsedDayFile): Promise<ImportOutcome
   const byId = new Map(allTasks.map((task) => [task.id, task]))
 
   for (const line of lines) {
-    if (line.id === null) {
-      // Neue Zeile in Obsidian -> neue einmalige Aufgabe für genau diesen Tag.
+    const known = line.id === null ? undefined : byId.get(line.id)
+
+    if (!known) {
+      /**
+       * Neue Zeile in Obsidian -> neue einmalige Aufgabe für genau diesen Tag.
+       *
+       * Das gilt auch für eine Zeile, die bereits einen `^qd-`-Anker trägt. Eine ID, die
+       * die App nicht kennt, ist kein Beleg für eine gelöschte Aufgabe: wäre sie in der
+       * App gelöscht worden, wäre die Tagesdatei gegenüber dem letzten Abgleich
+       * unverändert - und unveränderte Dateien reicht der Drei-Wege-Vergleich in
+       * `syncEngine` gar nicht erst zum Import weiter.
+       */
       const resolved = resolveCategory(categories, line.categoryName)
       if (resolved === undefined) warnUnknownCategory(line.categoryName, label, outcome)
       const task: OneOffTask = {
-        id: crypto.randomUUID(),
+        // Den Anker aus der Datei behalten: so muss die Zeile nicht umgeschrieben werden,
+        // und ein zweiter Lauf findet dieselbe Aufgabe wieder statt eine Dublette anzulegen.
+        id: line.id ?? crypto.randomUUID(),
         type: 'oneoff',
         title: line.title,
         categoryId: resolved ?? null,
@@ -285,13 +297,8 @@ export async function applyDayFile(parsed: ParsedDayFile): Promise<ImportOutcome
       continue
     }
 
-    const task = byId.get(line.id)
-    // Unbekannte ID: die Aufgabe wurde in der App gelöscht. Nicht wieder anlegen -
-    // die Zeile verschwindet beim nächsten Schreiben.
-    if (!task) continue
-
-    if (await updateTaskFields(task, line, categories, outcome, label)) outcome.updated += 1
-    if (await setCompletion(task, dateStr, line.checked)) outcome.updated += 1
+    if (await updateTaskFields(known, line, categories, outcome, label)) outcome.updated += 1
+    if (await setCompletion(known, dateStr, line.checked)) outcome.updated += 1
   }
 
   for (const line of parsed.goalCycles) {

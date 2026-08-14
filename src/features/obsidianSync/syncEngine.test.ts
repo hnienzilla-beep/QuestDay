@@ -326,6 +326,28 @@ describe('runSync', () => {
     expect([...github.files.keys()]).toContain(alt)
   })
 
+  it('übernimmt eine im Repo ergänzte Aufgaben-Zeile mit fremdem Anker', async () => {
+    await db.tasks.put(oneOff({ id: 'o1', title: 'Müll rausbringen', dueDate: todayISODate() }))
+    await runSync()
+
+    const dayPath = `QuestDay/Tage/${todayISODate()}.md`
+    const fremd = '- [ ] 09:00 Koffer packen ^qd-ed0f9ab7-0594-49ad-bb82-c5af4aecd3dd'
+    github.files.set(dayPath, github.files.get(dayPath)!.replace('## Termine', `${fremd}\n\n## Termine`))
+    github.touch()
+
+    await runSync()
+
+    const angelegt = await db.tasks.get('ed0f9ab7-0594-49ad-bb82-c5af4aecd3dd')
+    expect(angelegt).toMatchObject({ title: 'Koffer packen', time: '09:00' })
+    // Und die Zeile überlebt das Zurückschreiben - genau daran scheiterte es vorher.
+    expect(github.files.get(dayPath)).toContain('Koffer packen')
+
+    github.touch()
+    await runSync()
+    expect(github.files.get(dayPath)).toContain('Koffer packen')
+    expect(await db.tasks.count()).toBe(2)
+  })
+
   it('legt ein im Repo neu angelegtes Ziel in der App an', async () => {
     await runSync()
 
