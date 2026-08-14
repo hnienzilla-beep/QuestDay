@@ -243,7 +243,8 @@ function readTableRows(body: string, columns: number): ParseResult<string[][]> {
 // ------------------------------------------------------------- Aufgaben.md
 
 export interface ParsedTaskRow {
-  id: string
+  /** `null` = Zeile ohne ID, also von Hand ergänzt. */
+  id: string | null
   /** `null` = Zelle war leer, Wert bleibt unverändert. */
   title: string | null
   /** `null` = unverändert, `''` = ausdrücklich entfernt (Zelle enthielt `-`). */
@@ -276,10 +277,8 @@ export function parseTasksFile(content: string): ParseResult<ParsedTasksFile> {
 
   const rows: ParsedTaskRow[] = []
   for (const [rawTitle, rawCategory, rawRhythm, rawTime, rawReminder, rawId] of table.value) {
-    const id = rawId.trim()
-    // Eine Zeile ohne ID ist ein Neuanlage-Versuch - über Aufgaben.md nicht vorgesehen,
-    // aber auch kein Fehler: sie wird beim nächsten Schreiben schlicht entfernt.
-    if (!id) continue
+    // Eine Zeile ohne ID ist eine von Hand ergänzte Aufgabe; der Import legt sie an.
+    const id = rawId.trim() || null
 
     let frequency: 'daily' | 'weekly' | null = null
     let weekdays: number[] = []
