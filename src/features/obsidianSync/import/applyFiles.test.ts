@@ -198,6 +198,31 @@ describe('applyDayFile - Neuanlage', () => {
     expect((task as { dueDate: string }).dueDate).toBe(TODAY)
   })
 
+  it('legt aus einer neuen Zeile unter Termine einen Termin an', async () => {
+    await reset()
+    await roundTripDay((c) =>
+      c.replace('## Termine', '## Termine\n\n- [ ] 14:00-15:00 Zahnarzt (Arbeit) @Praxis Dr. Meier'),
+    )
+    const termin = (await db.tasks.toArray())[0]
+    expect(termin).toMatchObject({
+      type: 'appointment',
+      title: 'Zahnarzt',
+      date: TODAY,
+      startTime: '14:00',
+      endTime: '15:00',
+      location: 'Praxis Dr. Meier',
+    })
+  })
+
+  it('macht aus einer Termin-Zeile ohne Uhrzeit eine Aufgabe und sagt es', async () => {
+    await reset()
+    const ergebnis = await roundTripDay((c) =>
+      c.replace('## Termine', '## Termine\n\n- [ ] Irgendwann mal anrufen (Arbeit)'),
+    )
+    expect((await db.tasks.toArray())[0]).toMatchObject({ type: 'oneoff', title: 'Irgendwann mal anrufen' })
+    expect(ergebnis.warnings.join(' ')).toContain('keine Uhrzeit')
+  })
+
   it('legt aus derselben Zeile beim zweiten Lauf keine Dublette an', async () => {
     await reset()
     const mitAnker = (c: string) =>
@@ -405,6 +430,37 @@ describe('applyTasksFile', () => {
       time: null,
       reminderTime: null,
     })
+  })
+
+  it('legt aus einer Zeile ohne ID eine wiederkehrende Aufgabe an', async () => {
+    const ergebnis = await roundTripTasks(
+      (c) => `${c.trimEnd()}\n| Müll rausbringen | Haushalt | wöchentlich:2 | 18:00 | 17:30 |  |\n`,
+    )
+    const neu = (await db.tasks.toArray()).find((t) => t.title === 'Müll rausbringen')
+    expect(neu).toMatchObject({
+      type: 'recurring',
+      categoryId: CAT_HAUSHALT.id,
+      frequency: 'weekly',
+      weekdays: [2],
+      time: '18:00',
+      reminderTime: '17:30',
+    })
+    expect(ergebnis.created).toBe(1)
+  })
+
+  it('nimmt ohne Rhythmus täglich an und meldet das', async () => {
+    const ergebnis = await roundTripTasks((c) => `${c.trimEnd()}\n| Bett machen |  |  |  |  |  |\n`)
+    const neu = (await db.tasks.toArray()).find((t) => t.title === 'Bett machen')
+    expect(neu).toMatchObject({ type: 'recurring', frequency: 'daily', categoryId: null })
+    expect(ergebnis.warnings.join(' ')).toContain('täglich')
+  })
+
+  it('legt beim zweiten Lauf keine Dublette an', async () => {
+    await roundTripTasks((c) => `${c.trimEnd()}\n| Bett machen |  | täglich |  |  |  |\n`)
+    // Nach dem ersten Lauf steht die Aufgabe im Bestand und wird mit ID gerendert.
+    const zweiter = await roundTripTasks((c) => c)
+    expect((await db.tasks.toArray()).filter((t) => t.title === 'Bett machen')).toHaveLength(1)
+    expect(zweiter).toMatchObject({ created: 0, deleted: 0 })
   })
 
   it('löscht nichts, wenn die Zeile entfernt wurde', async () => {
