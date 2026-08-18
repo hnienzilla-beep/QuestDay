@@ -3,6 +3,7 @@ import type { Goal, SubStep, GoalRecurrence, RecurrenceFrequency } from '../../t
 import { isGoalDueOnDate, mostRecentDueDateOnOrBefore, isRecurrenceActiveOnDate } from './goalCycles'
 import { todayISODate } from '../../utils/dateUtils'
 import { triggerAutoSync } from '../obsidianSync/syncScheduler'
+import { goalCycleIdFor, subStepCycleIdFor } from '../obsidianSync/import/ids'
 
 function newId(): string {
   return crypto.randomUUID()
@@ -189,4 +190,54 @@ export async function stopGoalRecurrence(goalId: string): Promise<void> {
   if (!goal?.recurrence || goal.recurrence.stoppedAt) return
   await db.goals.update(goalId, { recurrence: { ...goal.recurrence, stoppedAt: new Date().toISOString() } })
   triggerAutoSync()
+}
+
+/**
+ * Hakt einen kompletten Ziel-Zyklus für einen beliebigen Tag ab oder nimmt das zurück.
+ *
+ * Anders als in der Ziel-Karte, wo einzelne Teilschritte angetippt werden, geht es im
+ * Tagesplan um den Zyklus als Ganzes: Alle Teilschritte dieses Tages wandern mit, sonst
+ * stünde ein "erledigt" neben halb offenen Schritten.
+ */
+export async function setGoalCycleDone(goal: Goal, cycleDueDate: string, done: boolean): Promise<void> {
+  if (!goal.recurrence) return
+
+  if (!done) {
+    await db.goalCycleCompletions.where('[goalId+cycleDueDate]').equals([goal.id, cycleDueDate]).delete()
+    await db.subStepCycleCompletions.where('[goalId+cycleDueDate]').equals([goal.id, cycleDueDate]).delete()
+    triggerAutoSync()
+    return
+  }
+
+  const steps = await db.subSteps.where('goalId').equals(goal.id).toArray()
+  // Mittag des Zyklustages statt "jetzt": beim Nachtragen wäre die aktuelle Uhrzeit
+  // irreführend, und der Zeitstempel muss auf jedem Gerät gleich ausfallen.
+  const completedAt = `${cycleDueDate}T12:00:00.000Z`
+
+  await db.subStepCycleCompletions.bulkPut(
+    steps.map((step) => ({
+      id: subStepCycleIdFor(step.id, cycleDueDate),
+      subStepId: step.id,
+      goalId: goal.id,
+      cycleDueDate,
+      completedAt,
+    })),
+  )
+  await db.goalCycleCompletions.put({
+    id: goalCycleIdFor(goal.id, cycleDueDate),
+    goalId: goal.id,
+    categoryId: goal.categoryId,
+    cycleDueDate,
+    completedAt,
+  })
+  triggerAutoSync()
+}
+
+/**
+ * Ein Ziel gilt als abgeschlossen, wenn es nichts mehr zu tun gibt: bei einmaligen Zielen
+ * mit dem letzten Teilschritt, bei wiederkehrenden mit dem Stoppen der Wiederholung.
+ * Solche Ziele wandern in der Zielübersicht ins Archiv, statt die Liste zu füllen.
+ */
+export function isGoalArchived(goal: Goal): boolean {
+  return goal.recurrence ? goal.recurrence.stoppedAt !== null : goal.completedAt !== null
 }

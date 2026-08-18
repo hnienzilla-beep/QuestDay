@@ -124,6 +124,31 @@
   font-size: 14px;
   font-weight: 700;
   margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.planner-selected-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Die Checkbox sitzt im Chip und behält ihre Trefferfläche, ohne die Zeile zu sprengen. */
+.plan-chip-check {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin-right: 1px;
+}
+
+.plan-chip-check .check-circle {
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
 }
 
 .planner-selected-items {

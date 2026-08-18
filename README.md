@@ -8,7 +8,7 @@ Drei Reiter in der unteren Leiste:
 
 - **Übersicht** – Begrüßung & Datum, heutige Aufgaben mit Tages-Fortschritt, Wochenkalender zum Planen (Drag & Drop) und ein Überblick über die Ziele
 - **ToDos** – alle Aufgaben, gruppiert nach Fälligkeit (Heute / Morgen / Später / Ohne Datum), mit Kategorie-Filter und Schnell-Eingabe
-- **Ziele** – Langzeit-Ziele mit Teilschritten und Prozent-Fortschritt, auch wiederkehrend
+- **Ziele** – Langzeit-Ziele mit Teilschritten und Prozent-Fortschritt, auch wiederkehrend; Abgeschlossenes liegt im Archiv
 
 Einstellungen (Kategorien, Design, Sync, Statistik) öffnen sich über das Zahnrad-Symbol oben.
 
@@ -16,7 +16,9 @@ Einstellungen (Kategorien, Design, Sync, Statistik) öffnen sich über das Zahnr
 
 - **Drei Aufgabenarten**: einmalige Aufgaben, wiederkehrende Aufgaben (täglich / an mehreren Wochentagen), Termine mit Uhrzeit
 - **Ziele** mit Teilschritten; einmalig oder wiederkehrend (täglich / wöchentlich an mehreren Wochentagen / monatlich / alle X Tage)
+- **Ziel-Archiv**: abgeschlossene und gestoppte Ziele wandern eingeklappt in einen aufklappbaren Archiv-Bereich und verschwinden aus der Übersicht
 - **Wochenkalender**: Aufgaben per Drag & Drop auf einen Tag planen, undatierte Aufgaben aus dem „Ungeplant"-Bereich einplanen, Wochen vor-/zurückblättern
+- **Abhaken für jeden Tag**: Tag in der Wochenleiste antippen, alles für diesen Tag abhaken – rückwirkend nachtragen und im Voraus erledigen, Aufgaben wie Ziel-Zyklen
 - **Eigene Kategorien**: frei anlegbar mit Name und Farbe, optional pro Aufgabe/Ziel
 - **Schwarzes Design**: cleanes, komplett dunkles Design mit frei wählbarer Akzentfarbe; Hell/Dunkel umschaltbar
 - **Erinnerungen** über die Notification API (lokal)

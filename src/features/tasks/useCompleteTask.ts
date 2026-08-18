@@ -4,45 +4,29 @@ import type { Task } from '../../types/task'
 import type { SubStep } from '../../types/goal'
 import { todayISODate } from '../../utils/dateUtils'
 import { triggerAutoSync } from '../obsidianSync/syncScheduler'
-import { completionIdFor } from '../obsidianSync/import/ids'
+import { completeTaskOnDate, uncompleteTaskOnDate } from './taskCompletion'
 
 export function useCompleteTask() {
-  const completeTask = useCallback(async (task: Task): Promise<void> => {
-    const now = new Date()
-
-    await db.taskCompletions.put({
-      // Abgeleitete ID statt Zufalls-UUID: so erzeugen zwei Geräte für dieselbe Erledigung
-      // denselben Datensatz, und der Abgleich konvergiert sofort.
-      id: completionIdFor(task.id, todayISODate()),
-      taskId: task.id,
-      taskType: task.type,
-      categoryId: task.categoryId,
-      completedDate: todayISODate(),
-      completedAt: now.toISOString(),
-    })
-
-    if (task.type !== 'recurring') {
-      await db.tasks.update(task.id, { completed: true, completedAt: now.toISOString() })
-    }
-
+  /** Für einen beliebigen Tag - trägt Vergangenes nach und hakt Künftiges vorab ab. */
+  const completeTaskOn = useCallback(async (task: Task, dateStr: string): Promise<void> => {
+    await completeTaskOnDate(task, dateStr)
     triggerAutoSync()
   }, [])
 
-  const uncompleteTask = useCallback(async (task: Task): Promise<void> => {
-    const todayStr = todayISODate()
-    const entry = await db.taskCompletions
-      .where('taskId')
-      .equals(task.id)
-      .and((c) => c.completedDate === todayStr)
-      .first()
-    if (!entry) return
-
-    await db.taskCompletions.delete(entry.id)
-    if (task.type !== 'recurring') {
-      await db.tasks.update(task.id, { completed: false, completedAt: null })
-    }
+  const uncompleteTaskOn = useCallback(async (task: Task, dateStr: string): Promise<void> => {
+    await uncompleteTaskOnDate(task, dateStr)
     triggerAutoSync()
   }, [])
+
+  const completeTask = useCallback(
+    (task: Task) => completeTaskOn(task, todayISODate()),
+    [completeTaskOn],
+  )
+
+  const uncompleteTask = useCallback(
+    (task: Task) => uncompleteTaskOn(task, todayISODate()),
+    [uncompleteTaskOn],
+  )
 
   const completeSubStep = useCallback(async (subStep: SubStep, isLastStep: boolean): Promise<void> => {
     await db.subSteps.update(subStep.id, {
@@ -62,5 +46,5 @@ export function useCompleteTask() {
     triggerAutoSync()
   }, [])
 
-  return { completeTask, uncompleteTask, completeSubStep, uncompleteSubStep }
+  return { completeTask, uncompleteTask, completeTaskOn, uncompleteTaskOn, completeSubStep, uncompleteSubStep }
 }
