@@ -7,7 +7,9 @@ import { db } from '../../db/db'
 import type { Task } from '../../types/task'
 import type { Goal } from '../../types/goal'
 import { tasksDueOnDate, isTaskDoneOnDate, taskSortTime } from '../tasks/taskRepository'
-import { goalsDueOnDate, isGoalCycleDoneOnDate } from '../goals/goalRepository'
+import { goalsDueOnDate, isGoalCycleDoneOnDate, setGoalCycleDone } from '../goals/goalRepository'
+import { useCompleteTask } from '../tasks/useCompleteTask'
+import CheckOffAnimation from '../../components/CheckOffAnimation'
 import { isoDateOf, todayISODate } from '../../utils/dateUtils'
 import { exportTasksToIcs } from '../calendarExport/exportIcs'
 import CategoryDot from '../../components/CategoryDot'
@@ -49,6 +51,7 @@ interface Props {
 }
 
 export default function WeeklyPlanner({ onEditTask }: Props) {
+  const { completeTaskOn, uncompleteTaskOn } = useCompleteTask()
   const [weekOffset, setWeekOffset] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(() => mondayIndex(new Date()))
   const monday = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 })
@@ -115,10 +118,22 @@ export default function WeeklyPlanner({ onEditTask }: Props) {
   }
 
   const selected = days?.[selectedIndex]
+  const selectedTotal = (selected?.tasks.length ?? 0) + (selected?.goals.length ?? 0)
+  const selectedDone =
+    (selected?.tasks.filter((t) => t.done).length ?? 0) + (selected?.goals.filter((g) => g.done).length ?? 0)
 
-  const renderChip = ({ task, done }: PlanTask) => {
+  const renderChip = ({ task, done }: PlanTask, dateStr?: string) => {
     const inner = (
       <>
+        {dateStr && (
+          // Der Klick darf weder die Aufgabe zum Bearbeiten öffnen noch ein Ziehen auslösen.
+          <span className="plan-chip-check" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <CheckOffAnimation
+              checked={done}
+              onToggle={() => (done ? uncompleteTaskOn(task, dateStr) : completeTaskOn(task, dateStr))}
+            />
+          </span>
+        )}
         <CategoryDot categoryId={task.categoryId} />
         <span className="plan-chip-title">
           {chipTimePrefix(task)}
@@ -182,14 +197,27 @@ export default function WeeklyPlanner({ onEditTask }: Props) {
 
       {selected && (
         <DroppableArea id={`dayfull:${selected.dateStr}`} className="planner-selected">
-          <div className="planner-selected-head">{format(selected.date, 'EEEE, d. MMMM', { locale: de })}</div>
+          <div className="planner-selected-head">
+            <span>{format(selected.date, 'EEEE, d. MMMM', { locale: de })}</span>
+            {selectedTotal > 0 && (
+              <span className="planner-selected-count">
+                {selectedDone} / {selectedTotal}
+              </span>
+            )}
+          </div>
           <div className="planner-selected-items">
             {selected.tasks.length === 0 && selected.goals.length === 0 && (
               <div className="planner-day-empty">Nichts geplant</div>
             )}
-            {selected.tasks.map(renderChip)}
+            {selected.tasks.map((item) => renderChip(item, selected.dateStr))}
             {selected.goals.map(({ goal, done, missed }) => (
               <div key={goal.id} className={`plan-chip goal${done ? ' done' : ''}${missed && !done ? ' missed' : ''}`}>
+                <span className="plan-chip-check">
+                  <CheckOffAnimation
+                    checked={done}
+                    onToggle={() => setGoalCycleDone(goal, selected.dateStr, !done)}
+                  />
+                </span>
                 <span className="plan-chip-title">🎯 {goal.title}</span>
               </div>
             ))}

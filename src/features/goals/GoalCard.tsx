@@ -1,4 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { format, parseISO } from 'date-fns'
+import { de } from 'date-fns/locale'
 import './GoalCard.css'
 import { db } from '../../db/db'
 import type { Goal, SubStep } from '../../types/goal'
@@ -9,12 +11,22 @@ import { useCompleteTask } from '../tasks/useCompleteTask'
 import { useCompleteGoalCycle } from './useCompleteGoalCycle'
 import { currentCycleStatus, stopGoalRecurrence } from './goalRepository'
 
+/** Beschriftung im Archiv: woran das Ziel endete und wann. */
+function archivLabel(goal: Goal): string | null {
+  const ende = goal.recurrence ? goal.recurrence.stoppedAt : goal.completedAt
+  if (!ende) return null
+  const datum = format(parseISO(ende), 'd. MMM yyyy', { locale: de })
+  return goal.recurrence ? `Gestoppt am ${datum}` : `Abgeschlossen am ${datum}`
+}
+
 interface Props {
   goal: Goal
   onEdit: (goal: Goal, subSteps: SubStep[]) => void
+  /** Eingeklappte Fassung fürs Archiv: nur Kopfzeile und Abschluss, keine Teilschritte. */
+  compact?: boolean
 }
 
-export default function GoalCard({ goal, onEdit }: Props) {
+export default function GoalCard({ goal, onEdit, compact = false }: Props) {
   const subSteps = useLiveQuery(
     () => db.subSteps.where('goalId').equals(goal.id).sortBy('order'),
     [goal.id],
@@ -71,17 +83,18 @@ export default function GoalCard({ goal, onEdit }: Props) {
         </div>
         <ProgressRing percent={percent} size={46} />
       </div>
-      {goal.target && <div className="goal-card-target">{goal.target}</div>}
+      {goal.target && !compact && <div className="goal-card-target">{goal.target}</div>}
 
       <div className="goal-card-progress-label">
         <span>
           {doneCount} / {subSteps.length} Schritte
         </span>
-        {isDone && <span className="goal-done-label">Abgeschlossen</span>}
+        {compact && archivLabel(goal) && <span className="goal-done-label">{archivLabel(goal)}</span>}
+        {!compact && isDone && <span className="goal-done-label">Abgeschlossen</span>}
         {isRecurring && cycleStatus?.isMissed && <span className="goal-missed-badge">Verpasst</span>}
       </div>
 
-      {isRecurring && (
+      {isRecurring && !compact && (
         <div className="goal-cycle-row" onClick={(e) => e.stopPropagation()}>
           <span className="goal-cycle-count">{cycleStatus?.completionCount ?? 0}× erledigt</span>
           {!goal.recurrence!.stoppedAt ? (
@@ -94,14 +107,16 @@ export default function GoalCard({ goal, onEdit }: Props) {
         </div>
       )}
 
-      <div className="substep-list" onClick={(e) => e.stopPropagation()}>
-        {subSteps.map((step) => (
-          <div key={step.id} className={`substep-item${isChecked(step) ? ' done' : ''}`}>
-            <CheckOffAnimation checked={isChecked(step)} onToggle={() => handleToggle(step)} />
-            <span>{step.title}</span>
-          </div>
-        ))}
-      </div>
+      {!compact && (
+        <div className="substep-list" onClick={(e) => e.stopPropagation()}>
+          {subSteps.map((step) => (
+            <div key={step.id} className={`substep-item${isChecked(step) ? ' done' : ''}`}>
+              <CheckOffAnimation checked={isChecked(step)} onToggle={() => handleToggle(step)} />
+              <span>{step.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

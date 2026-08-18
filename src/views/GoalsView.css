@@ -1,0 +1,40 @@
+/* Aufklappbares Archiv abgeschlossener Ziele. */
+.archive-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0 10px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.archive-toggle svg {
+  transition: transform 0.18s ease;
+  flex: none;
+}
+
+.archive-toggle.open svg {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-toggle svg {
+    transition: none;
+  }
+}
+
+.archive-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+}

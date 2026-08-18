@@ -26,6 +26,7 @@ import TaskListItem from '../features/tasks/TaskListItem'
 import TaskForm from '../features/tasks/TaskForm'
 import WeeklyPlanner from '../features/planner/WeeklyPlanner'
 import GoalSummaryItem from '../features/goals/GoalSummaryItem'
+import { isGoalArchived } from '../features/goals/goalRepository'
 import DraggableItem from '../features/dnd/DraggableItem'
 import { PlusIcon } from '../components/icons'
 
@@ -91,8 +92,14 @@ export default function OverviewView({ onOpenSettings, onNavigate }: Props) {
     })
   }, [todayStr])
 
+  // Abgeschlossene Ziele liegen im Archiv der Zielübersicht und gehören nicht mehr hierher.
   const goals = useLiveQuery(
-    () => db.goals.toArray().then((list) => list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
+    () =>
+      db.goals
+        .toArray()
+        .then((list) =>
+          list.filter((g) => !isGoalArchived(g)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        ),
     [],
   )
 
