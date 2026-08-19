@@ -241,3 +241,78 @@ export async function setGoalCycleDone(goal: Goal, cycleDueDate: string, done: b
 export function isGoalArchived(goal: Goal): boolean {
   return goal.recurrence ? goal.recurrence.stoppedAt !== null : goal.completedAt !== null
 }
+
+/** Normalisierter Titel als Schlüssel für die Dubletten-Suche. */
+function titleKey(title: string): string {
+  return title.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Findet Teilschritte, die innerhalb eines Ziels denselben Titel tragen.
+ *
+ * Sie entstanden, als jedes Gerät einer ihm unbekannten Zeile eine eigene Zufalls-ID gab.
+ * Neue Dubletten kann es nicht mehr geben; die vorhandenen verschwinden nicht von selbst,
+ * weil sie in der Datenbank vollwertige Einträge sind.
+ */
+export async function countDuplicateSubSteps(): Promise<number> {
+  const steps = await db.subSteps.toArray()
+  const gesehen = new Set<string>()
+  let doppelt = 0
+  for (const step of steps) {
+    const key = `${step.goalId}|${titleKey(step.title)}`
+    if (gesehen.has(key)) doppelt += 1
+    else gesehen.add(key)
+  }
+  return doppelt
+}
+
+/**
+ * Führt gleichnamige Teilschritte eines Ziels zusammen.
+ *
+ * Behalten wird der vorderste (niedrigste `order`, bei Gleichstand die kleinste ID - auf
+ * jedem Gerät dieselbe Wahl). Erledigt-Zustand und Zyklus-Erledigungen der Dubletten wandern
+ * auf den behaltenen Schritt, damit kein Häkchen verloren geht.
+ *
+ * Bewusst nur auf Knopfdruck: Zwei gleichnamige Schritte können in einer Packliste auch
+ * gewollt sein.
+ */
+export async function mergeDuplicateSubSteps(): Promise<number> {
+  const steps = await db.subSteps.toArray()
+  const gruppen = new Map<string, SubStep[]>()
+  for (const step of steps) {
+    const key = `${step.goalId}|${titleKey(step.title)}`
+    const liste = gruppen.get(key) ?? []
+    liste.push(step)
+    gruppen.set(key, liste)
+  }
+
+  let entfernt = 0
+  for (const liste of gruppen.values()) {
+    if (liste.length < 2) continue
+    liste.sort((a, b) => a.order - b.order || (a.id < b.id ? -1 : 1))
+    const [behalten, ...dubletten] = liste
+
+    const erledigt = liste.some((s) => s.completed)
+    const erledigtAm = liste.map((s) => s.completedAt).filter((v): v is string => v !== null).sort()[0] ?? null
+    if (behalten.completed !== erledigt || behalten.completedAt !== erledigtAm) {
+      await db.subSteps.update(behalten.id, { completed: erledigt, completedAt: erledigtAm })
+    }
+
+    for (const dublette of dubletten) {
+      const zyklen = await db.subStepCycleCompletions.where('subStepId').equals(dublette.id).toArray()
+      for (const zyklus of zyklen) {
+        await db.subStepCycleCompletions.put({
+          ...zyklus,
+          id: subStepCycleIdFor(behalten.id, zyklus.cycleDueDate),
+          subStepId: behalten.id,
+        })
+        await db.subStepCycleCompletions.delete(zyklus.id)
+      }
+      await db.subSteps.delete(dublette.id)
+      entfernt += 1
+    }
+  }
+
+  if (entfernt > 0) triggerAutoSync()
+  return entfernt
+}

@@ -1,8 +1,8 @@
-import { asciiSlug, uniqueSlug } from '../canonical'
+import { asciiSlug } from '../canonical'
 import { gitBlobShaOf } from '../gitSha'
 import { dayFileDates } from '../model/dayScope'
 import { canonicalizeSnapshot, type VaultSnapshot } from '../model/snapshot'
-import { CATEGORIES_PATH, DATA_PATH, TASKS_PATH, dayPath, goalPath, goalSlugOf } from '../vaultPaths'
+import { CATEGORIES_PATH, DATA_PATH, TASKS_PATH, dayPath, goalPath } from '../vaultPaths'
 import {
   renderCategoriesFile,
   renderDayFile,
@@ -26,7 +26,8 @@ export interface RenderedVault {
  */
 export function renderVault(
   input: VaultSnapshot,
-  previousGoalPaths: Readonly<Record<string, string>>,
+  /** Wird nicht mehr ausgewertet; siehe Begründung bei der Pfadvergabe unten. */
+  _previousGoalPaths: Readonly<Record<string, string>> = {},
 ): RenderedVault {
   const snapshot = canonicalizeSnapshot(input)
   const files = new Map<string, string>()
@@ -35,23 +36,29 @@ export function renderVault(
     files.set(dayPath(dateStr), renderDayFile(snapshot, dateStr))
   }
 
+  /**
+   * Der Pfad eines Ziels ist eine reine Funktion seiner Daten - bewusst ohne den lokal
+   * gemerkten Stand.
+   *
+   * Vorher entschied `previousGoalPaths` aus dem localStorage mit, und bei gleichnamigen
+   * Zielen vergab `uniqueSlug` das Suffix nach Reihenfolge. Beides ist je Gerät verschieden:
+   * Gerät A schrieb Ziel X nach `ziel.md` und Y nach `ziel-2.md`, Gerät B genau andersherum -
+   * und jeder Abgleich schrieb beide Dateien in die eigene Zuordnung um. Von außen sah das
+   * aus, als würde die App alles zurückschreiben, samt Konflikt-Sicherungen.
+   *
+   * Jetzt gilt: Ein eindeutiger Titel ergibt den Slug des Titels. Teilen sich mehrere Ziele
+   * einen Slug, hängt jedes davon einen festen Teil seiner ID an - auf jedem Gerät dasselbe
+   * Ergebnis, ohne Rücksicht auf Reihenfolge oder Vorgeschichte.
+   */
   const goalPaths: Record<string, string> = {}
-  const takenSlugs = new Set<string>()
-
-  // Erst die bereits bekannten Pfade festhalten, damit neue Ziele nicht in einen belegten
-  // Slug laufen; die Reihenfolge ist durch die Snapshot-Sortierung deterministisch.
+  const slugCount = new Map<string, number>()
   for (const goal of snapshot.goals) {
-    const known = previousGoalPaths[goal.id]
-    const knownSlug = known ? goalSlugOf(known) : null
-    if (knownSlug && !takenSlugs.has(knownSlug)) {
-      goalPaths[goal.id] = goalPath(knownSlug)
-      takenSlugs.add(knownSlug)
-    }
+    const base = asciiSlug(goal.title)
+    slugCount.set(base, (slugCount.get(base) ?? 0) + 1)
   }
   for (const goal of snapshot.goals) {
-    if (goalPaths[goal.id]) continue
-    const slug = uniqueSlug(asciiSlug(goal.title), takenSlugs)
-    takenSlugs.add(slug)
+    const base = asciiSlug(goal.title)
+    const slug = slugCount.get(base) === 1 ? base : `${base}-${goal.id.slice(0, 8)}`
     goalPaths[goal.id] = goalPath(slug)
   }
 
