@@ -4,6 +4,7 @@ import { testConnection } from './githubApi'
 import { cleanUpLegacyFiles, restoreFromJson, runNow } from './syncScheduler'
 import { useSyncScheduler } from './useSyncScheduler'
 import { loadSyncState } from './syncState'
+import { countDuplicateSubSteps, mergeDuplicateSubSteps } from '../goals/goalRepository'
 import { PREFIX } from './vaultPaths'
 import './ObsidianSyncPanel.css'
 
@@ -23,6 +24,7 @@ export default function ObsidianSyncPanel() {
   const [token, setToken] = useState('')
   const [message, setMessage] = useState<{ type: MessageType; text: string }>({ type: 'idle', text: '' })
   const [quarantined, setQuarantined] = useState<string[]>([])
+  const [doppelte, setDoppelte] = useState(0)
 
   useEffect(() => {
     const existing = getSyncSettings()
@@ -39,6 +41,10 @@ export default function ObsidianSyncPanel() {
     if (!settings) return
     setQuarantined(Object.keys(loadSyncState(repoKeyOf(settings)).quarantine))
   }, [status.lastSyncAt, status.phase])
+
+  useEffect(() => {
+    countDuplicateSubSteps().then(setDoppelte)
+  }, [status.lastSyncAt, message.text])
 
   function persist() {
     saveSyncSettings({
@@ -160,6 +166,37 @@ export default function ObsidianSyncPanel() {
             <li key={warning}>{warning}</li>
           ))}
         </ul>
+      )}
+
+      {doppelte > 0 && (
+        <div className="obsidian-sync-warnings">
+          <strong>
+            {doppelte} doppelte Teilschritte gefunden
+          </strong>
+          <p className="obsidian-sync-hint">
+            Reste aus einem früheren Fehler beim Abgleich. Zusammenführen behält den vordersten
+            Schritt samt Häkchen. Gewollte Doppelungen in einer Liste verschwinden dabei auch –
+            du kannst sie danach neu anlegen.
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() =>
+              handleAction(
+                async () => {
+                  const n = await mergeDuplicateSubSteps()
+                  setDoppelte(await countDuplicateSubSteps())
+                  return n
+                },
+                'Führe doppelte Teilschritte zusammen…',
+                'Doppelte Teilschritte zusammengeführt.',
+              )
+            }
+          >
+            Zusammenführen
+          </button>
+        </div>
       )}
 
       {quarantined.length > 0 && (

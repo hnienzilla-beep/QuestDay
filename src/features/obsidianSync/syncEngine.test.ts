@@ -4,8 +4,8 @@ import { runSync } from './syncEngine'
 import { gitBlobShaOf } from './gitSha'
 import { loadSnapshot } from './model/snapshot'
 import { renderVault } from './render/renderVault'
-import { saveSyncSettings } from './settings'
-import { clearSyncState } from './syncState'
+import { getSyncSettings, repoKeyOf, saveSyncSettings } from './settings'
+import { clearSyncState, commitSyncState, emptySyncState } from './syncState'
 import { todayISODate } from '../../utils/dateUtils'
 import { CATEGORIES, oneOff, recurring } from '../../test/fixtures'
 
@@ -346,6 +346,47 @@ describe('runSync', () => {
     await runSync()
     expect(github.files.get(dayPath)).toContain('Koffer packen')
     expect(await db.tasks.count()).toBe(2)
+  })
+
+  it('schreibt gleichnamige Ziele nicht zwischen zwei Geräten hin und her', async () => {
+    // Der gemeldete Fall: zwei Ziele mit demselben Titel. Welches Ziel in welche Datei kam,
+    // entschied der lokal gemerkte Stand - und der liegt im localStorage, ist also auf jedem
+    // Gerät ein anderer. Beide Geräte schrieben deshalb bei jedem Lauf beide Dateien um.
+    const basis = {
+      target: '',
+      categoryId: null,
+      createdAt: '2026-08-18T08:00:00.000Z',
+      targetDate: null,
+      completedAt: null,
+      recurrence: null,
+    }
+    const A = 'aaa11111-0000-0000-0000-000000000000'
+    const B = 'bbb22222-0000-0000-0000-000000000000'
+    await db.goals.bulkPut([
+      { ...basis, id: A, title: 'Übernachtung bei der Freundin' },
+      { ...basis, id: B, title: 'Übernachtung bei der Freundin' },
+    ])
+
+    // Gerät 1 hat sich die umgekehrte Zuordnung gemerkt.
+    const repoKey = repoKeyOf(getSyncSettings()!)
+    commitSyncState({
+      ...emptySyncState(repoKey),
+      goalPaths: {
+        [B]: 'QuestDay/Ziele/uebernachtung-bei-der-freundin.md',
+        [A]: 'QuestDay/Ziele/uebernachtung-bei-der-freundin-2.md',
+      },
+    })
+    await runSync()
+    const nachGeraet1 = new Map(github.files)
+
+    // Gerät 2: dieselben Daten, aber ohne diese Vorgeschichte.
+    clearSyncState()
+    github.reset()
+    const zweiter = await runSync()
+
+    expect(zweiter.pushed).toBe(0)
+    expect(github.commits).toBe(0)
+    expect([...github.files.entries()].sort()).toEqual([...nachGeraet1.entries()].sort())
   })
 
   it('legt ein im Repo neu angelegtes Ziel in der App an', async () => {

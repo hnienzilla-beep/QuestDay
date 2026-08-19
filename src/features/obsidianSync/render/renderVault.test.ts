@@ -71,15 +71,42 @@ describe('renderVault - Determinismus', () => {
     expect([...b.files.entries()].sort()).toEqual([...a.files.entries()].sort())
   })
 
-  it('behält den Ziel-Pfad bei, wenn sich der Titel ändert', () => {
+  it('verschiebt die Ziel-Datei mit dem Titel - und zwar auf jedem Gerät gleich', () => {
     const snapshot = fullSnapshot()
     const first = renderVault(snapshot, {})
     const renamed: VaultSnapshot = {
       ...snapshot,
       goals: snapshot.goals.map((g) => (g.id === 'g1' ? { ...g, title: 'Ganz anderer Titel' } : g)),
     }
-    const second = renderVault(renamed, first.goalPaths)
-    expect(second.goalPaths.g1).toBe(first.goalPaths.g1)
+
+    // Früher blieb der alte Pfad bestehen, gestützt auf den lokal gemerkten Stand. Genau das
+    // ließ zwei Geräte dieselben Dateien gegeneinander umschreiben: Der gemerkte Stand liegt
+    // im localStorage und ist auf jedem Gerät ein anderer. Der Pfad folgt jetzt dem Titel.
+    const mitVorgeschichte = renderVault(renamed, first.goalPaths)
+    const ohneVorgeschichte = renderVault(renamed, {})
+
+    expect(mitVorgeschichte.goalPaths.g1).toBe('QuestDay/Ziele/ganz-anderer-titel.md')
+    expect(ohneVorgeschichte.goalPaths.g1).toBe(mitVorgeschichte.goalPaths.g1)
+  })
+
+  it('gibt gleichnamigen Zielen feste, voneinander unabhängige Pfade', () => {
+    const snapshot = fullSnapshot()
+    const zwilling: VaultSnapshot = {
+      ...snapshot,
+      goals: [
+        ...snapshot.goals,
+        { ...snapshot.goals[0], id: 'zwilling-1', title: snapshot.goals[0].title },
+      ],
+    }
+
+    const a = renderVault(zwilling, {})
+    // Anderes Gerät: andere Reihenfolge, anderer gemerkter Stand.
+    const b = renderVault({ ...zwilling, goals: [...zwilling.goals].reverse() }, { g1: 'QuestDay/Ziele/irgendwas.md' })
+
+    expect(b.goalPaths).toEqual(a.goalPaths)
+    // Kein Zähl-Suffix mehr, das von der Reihenfolge abhinge.
+    expect(Object.values(a.goalPaths)).not.toContain('QuestDay/Ziele/marathon-vorbereiten-2.md')
+    expect(new Set(Object.values(a.goalPaths)).size).toBe(Object.keys(a.goalPaths).length)
   })
 
   it('führt undatierte einmalige Aufgaben in keiner Tagesdatei', () => {
