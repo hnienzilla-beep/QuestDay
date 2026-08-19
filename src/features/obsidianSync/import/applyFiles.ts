@@ -11,7 +11,7 @@ import type {
   ParsedTaskRow,
   ParsedTasksFile,
 } from '../parse/parseFiles'
-import { completionIdFor, goalCycleIdFor, subStepCycleIdFor } from './ids'
+import { completionIdFor, derivedIdFor, goalCycleIdFor, occurrenceCounter, subStepCycleIdFor } from './ids'
 
 /**
  * Anwenden dessen, was aus dem Repo kommt.
@@ -114,16 +114,22 @@ export async function applyCategoriesFile(parsed: ParsedCategoriesFile): Promise
   const outcome = emptyOutcome()
 
   for (const row of parsed.rows) {
+    // Abgeleitete statt zufälliger ID: zwei Geräte, die dieselbe neue Zeile lesen, legen
+    // sonst zwei Kategorien an.
+    const categoryId = row.id ?? derivedIdFor('cat', '', row.name ?? '')
+
     if (row.id === null) {
       // Zeile ohne ID -> neue Kategorie. Additiv und damit ungefährlich.
       if (!row.name) continue
-      await db.categories.add({
-        id: crypto.randomUUID(),
-        name: row.name,
-        color: row.color ?? '#8a8a8a',
-        createdAt: new Date().toISOString(),
-      })
-      outcome.created += 1
+      if (!(await db.categories.get(categoryId))) {
+        await db.categories.add({
+          id: categoryId,
+          name: row.name,
+          color: row.color ?? '#8a8a8a',
+          createdAt: new Date().toISOString(),
+        })
+        outcome.created += 1
+      }
       continue
     }
 
@@ -267,8 +273,13 @@ export async function applyDayFile(parsed: ParsedDayFile): Promise<ImportOutcome
   const [allTasks, categories] = await Promise.all([db.tasks.toArray(), db.categories.toArray()])
   const byId = new Map(allTasks.map((task) => [task.id, task]))
 
+  const occurrence = occurrenceCounter()
+
   for (const { line, ausTerminen } of lines) {
-    const known = line.id === null ? undefined : byId.get(line.id)
+    // Ohne Anker eine abgeleitete ID: sonst legen zwei Geräte aus derselben Zeile zwei
+    // Aufgaben an, und beide landen im Repo.
+    const taskId = line.id ?? derivedIdFor('task', dateStr, line.title, occurrence(line.title))
+    const known = byId.get(taskId)
 
     if (!known) {
       /**
@@ -285,7 +296,7 @@ export async function applyDayFile(parsed: ParsedDayFile): Promise<ImportOutcome
       const gemeinsam = {
         // Den Anker aus der Datei behalten: so muss die Zeile nicht umgeschrieben werden,
         // und ein zweiter Lauf findet dieselbe Aufgabe wieder statt eine Dublette anzulegen.
-        id: line.id ?? crypto.randomUUID(),
+        id: taskId,
         title: line.title,
         categoryId: resolved ?? null,
         reminderTime: null,
@@ -444,13 +455,27 @@ export async function applyGoalFile(parsed: ParsedGoalFile, today: string): Prom
   const existingSteps = await db.subSteps.where('goalId').equals(goal.id).toArray()
   const byId = new Map(existingSteps.map((step) => [step.id, step]))
   const seen = new Set<string>()
+  const occurrence = occurrenceCounter()
   let nextOrder = 0
 
   for (const line of parsed.subSteps) {
-    const existing = line.id ? byId.get(line.id) : undefined
+    /**
+     * Die ID aus der Zeile zählt, auch wenn dieses Gerät sie nicht kennt.
+     *
+     * Vorher bekam jede unbekannte Zeile eine frische Zufalls-ID. Beim Abgleich über
+     * mehrere Geräte hieß das: Gerät B liest die Datei von Gerät A, vergibt eigene IDs,
+     * schreibt sie zurück, A liest sie als unbekannt - und so fort. Die eigenen
+     * Teilschritte fielen dabei in die Löschregel, die ab elf Einträgen aber nicht mehr
+     * greift. Bei größeren Zielen blieben deshalb beide Sätze stehen.
+     */
+    const stepId = line.id ?? derivedIdFor('ss', goal.id, line.title, occurrence(line.title))
+    // Auch außerhalb dieses Ziels nachsehen: sonst bräche `add` bei einer Zeile ab, die
+    // von einer anderen Ziel-Datei hierher verschoben wurde.
+    const existing = byId.get(stepId) ?? (await db.subSteps.get(stepId))
+
     if (!existing) {
       const step: SubStep = {
-        id: crypto.randomUUID(),
+        id: stepId,
         goalId: goal.id,
         title: line.title,
         completed: line.checked,
@@ -462,6 +487,11 @@ export async function applyGoalFile(parsed: ParsedGoalFile, today: string): Prom
       outcome.created += 1
       nextOrder += 1
       continue
+    }
+
+    if (existing.goalId !== goal.id) {
+      // Verschoben statt neu: sonst stünde derselbe Schritt in zwei Zielen.
+      await db.subSteps.update(existing.id, { goalId: goal.id })
     }
 
     seen.add(existing.id)
@@ -516,6 +546,7 @@ async function syncGoalCompletion(goalId: string): Promise<void> {
  */
 async function createRecurringFromRow(
   row: ParsedTaskRow,
+  taskId: string,
   categories: readonly Category[],
   outcome: ImportOutcome,
 ): Promise<void> {
@@ -533,7 +564,7 @@ async function createRecurringFromRow(
   }
 
   const task: RecurringTask = {
-    id: row.id ?? crypto.randomUUID(),
+    id: taskId,
     type: 'recurring',
     title,
     categoryId: resolved ?? null,
@@ -555,13 +586,15 @@ export async function applyTasksFile(parsed: ParsedTasksFile): Promise<ImportOut
   const categories = await db.categories.toArray()
 
   for (const row of parsed.rows) {
-    const task = row.id === null ? undefined : await db.tasks.get(row.id)
+    // Wie oben: ohne ID in der Zeile eine abgeleitete, damit zwei Geräte zusammenfinden.
+    const taskId = row.id ?? derivedIdFor('rec', '', row.title ?? '')
+    const task = await db.tasks.get(taskId)
 
     // Zeile ohne ID oder mit einer, die die App nicht kennt: von Hand ergänzt, also anlegen.
     // Für eine in der App gelöschte Aufgabe wäre die Datei seit dem letzten Abgleich
     // unverändert - solche Dateien erreichen den Import gar nicht erst.
     if (!task) {
-      await createRecurringFromRow(row, categories, outcome)
+      await createRecurringFromRow(row, taskId, categories, outcome)
       continue
     }
     // Eine ID, die zu einer einmaligen Aufgabe oder einem Termin gehört, gehört nicht
