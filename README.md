@@ -63,6 +63,7 @@ QuestDay/
   Tage/2026-08-06.md      Aufgaben, Termine und fällige Ziel-Zyklen dieses Tages
   Ziele/<titel>.md        ein Ziel je Datei, mit seinen Teilschritten
   Aufgaben.md             wiederkehrende Aufgaben als Tabelle
+  Ungeplant.md            einmalige Aufgaben ohne Datum
   Kategorien.md           Kategorien mit Farbe und ID
   questday-data.json      vollständiger Datenbestand für ein neues Gerät
   _Konflikte/…            gesicherte lokale Fassung, falls beide Seiten dieselbe Datei änderten
@@ -84,11 +85,13 @@ die App ergänzt sie beim nächsten Schreiben.
 | Titel, Uhrzeit, Ort in einer Zeile ändern | wird übernommen |
 | Kategorie in der Klammer ändern | wird übernommen, **wenn** der Name in `Kategorien.md` existiert |
 | neue Zeile `- [ ] Titel (Kategorie)` in einer Tagesdatei | neue einmalige Aufgabe für diesen Tag |
+| Haken in `Ungeplant.md` setzen/entfernen | Aufgabe ohne Datum erledigen/wieder öffnen |
+| Zeile in `Ungeplant.md` entfernen | Aufgabe wird gelöscht |
 | Zeile einer **einmaligen** Aufgabe / eines Termins entfernen | Aufgabe wird gelöscht |
 | Zeile einer **wiederkehrenden** Aufgabe oder eines Ziel-Zyklus entfernen | **nichts** – sie erscheint wieder |
 | neue Zeile unter `## Teilschritte` | neuer Teilschritt |
 | Teilschritt-Zeile entfernen | Teilschritt wird gelöscht |
-| Ziel-Datei löschen oder umbenennen | **nichts** – sie wird neu geschrieben bzw. am neuen Ort weitergeführt |
+| Ziel-Datei löschen oder umbenennen | **nichts** – sie wird unter ihrem Namen aus dem Ziel-Titel neu geschrieben |
 | Zeile in `Aufgaben.md` / `Kategorien.md` entfernen | **nichts** |
 | Zelle leeren | **nichts** – leere Zelle heißt „unverändert“, ein `-` löscht den Wert |
 | Zeile ohne ID in `Kategorien.md` | neue Kategorie |

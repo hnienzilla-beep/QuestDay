@@ -16,6 +16,7 @@ import {
   applyDayFile,
   applyGoalFile,
   applyTasksFile,
+  applyUnplannedFile,
   emptyOutcome,
   mergeOutcomes,
   type ImportOutcome,
@@ -27,7 +28,13 @@ import {
   parseDataJson,
 } from './import/importJson'
 import { loadSnapshot } from './model/snapshot'
-import { parseCategoriesFile, parseDayFile, parseGoalFile, parseTasksFile } from './parse/parseFiles'
+import {
+  parseCategoriesFile,
+  parseDayFile,
+  parseGoalFile,
+  parseTasksFile,
+  parseUnplannedFile,
+} from './parse/parseFiles'
 import { renderVault, shaVault } from './render/renderVault'
 import { repoKeyOf } from './settings'
 import { commitSyncState, loadSyncState, type SyncState } from './syncState'
@@ -241,6 +248,23 @@ async function runSyncOnce(): Promise<SyncResult> {
     mutations.push(...deletions)
   }
 
+  /**
+   * `questday-data.json` allein rechtfertigt keinen Commit.
+   *
+   * Die Datei ist ein Abzug für die Einrichtung eines neuen Geräts und enthält Felder, die
+   * das Markdown gar nicht trägt - etwa Zeitstempel auf die Millisekunde. Zwei Geräte
+   * unterscheiden sich darin zwangsläufig und können sich darüber auch nicht einigen: Der
+   * Import der JSON ist bewusst nur additiv. Vorher schrieb deshalb jedes Gerät im Wechsel
+   * seine Fassung - im Minutentakt, ohne dass sich inhaltlich etwas änderte.
+   *
+   * Sie wandert weiterhin mit, sobald es echte Änderungen gibt; sie löst nur keine mehr aus.
+   */
+  const nurAbzug =
+    mutations.length > 0 && mutations.every((mutation) => mutation.path === DATA_PATH)
+  if (nurAbzug && remoteShas[DATA_PATH] !== undefined) {
+    mutations.length = 0
+  }
+
   if (mutations.length > 0) {
     const headSha = await getHeadCommitSha(settings)
     result.requests += 1
@@ -315,6 +339,10 @@ async function applyPath(path: string, content: string, today: string): Promise<
   if (classified.kind === 'tasks') {
     const parsed = parseTasksFile(content)
     return parsed.ok ? applyTasksFile(parsed.value) : null
+  }
+  if (classified.kind === 'unplanned') {
+    const parsed = parseUnplannedFile(content, await categoryNames())
+    return parsed.ok ? applyUnplannedFile(parsed.value) : null
   }
   if (classified.kind === 'categories') {
     const parsed = parseCategoriesFile(content)

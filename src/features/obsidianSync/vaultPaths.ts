@@ -9,13 +9,15 @@ export const DAYS_DIR = `${PREFIX}/Tage`
 export const GOALS_DIR = `${PREFIX}/Ziele`
 export const TASKS_PATH = `${PREFIX}/Aufgaben.md`
 export const CATEGORIES_PATH = `${PREFIX}/Kategorien.md`
+/** Einmalige Aufgaben ohne Datum. Ohne eigene Datei stünde ihr Zustand nirgends im Markdown. */
+export const UNPLANNED_PATH = `${PREFIX}/Ungeplant.md`
 export const DATA_PATH = `${PREFIX}/questday-data.json`
 export const CONFLICTS_DIR = `${PREFIX}/_Konflikte`
 
 /** Aus dem Einbahn-Export der Vorversion; wird nicht mehr geschrieben, nur auf Wunsch gelöscht. */
 export const LEGACY_DIR = '10-Quests'
 
-export type ManagedKind = 'day' | 'goal' | 'tasks' | 'categories' | 'data'
+export type ManagedKind = 'day' | 'goal' | 'tasks' | 'categories' | 'unplanned' | 'data'
 
 export interface ClassifiedPath {
   kind: ManagedKind
@@ -45,6 +47,7 @@ export function goalSlugOf(path: string): string | null {
  * beim Parsen sichtbar ist.
  */
 export function classifyPath(path: string): ClassifiedPath | null {
+  if (path === UNPLANNED_PATH) return { kind: 'unplanned' }
   const dayMatch = DAY_PATH_RE.exec(path)
   if (dayMatch) return { kind: 'day', dateStr: dayMatch[1] }
   if (GOAL_PATH_RE.test(path)) return { kind: 'goal' }

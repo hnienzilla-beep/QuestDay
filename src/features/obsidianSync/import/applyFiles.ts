@@ -1,4 +1,5 @@
 import { db } from '../../../db/db'
+import { todayISODate } from '../../../utils/dateUtils'
 import type { OneOffTask, RecurringTask, Task } from '../../../types/task'
 import type { Goal, GoalRecurrence, SubStep } from '../../../types/goal'
 import type { Category } from '../../../types/category'
@@ -10,6 +11,7 @@ import type {
   ParsedGoalFile,
   ParsedTaskRow,
   ParsedTasksFile,
+  ParsedUnplannedFile,
 } from '../parse/parseFiles'
 import { completionIdFor, derivedIdFor, goalCycleIdFor, occurrenceCounter, subStepCycleIdFor } from './ids'
 
@@ -641,5 +643,79 @@ export async function applyTasksFile(parsed: ParsedTasksFile): Promise<ImportOut
 
   // Eine entfernte Zeile löscht hier bewusst nichts: Erledigungen verweisen auf diese
   // Aufgaben. Gelöscht wird nur in der App.
+  return outcome
+}
+
+// ------------------------------------------------------------------ Ungeplant
+
+/**
+ * Einmalige Aufgaben ohne Datum.
+ *
+ * Sie stehen in keiner Tagesdatei; ihr Zustand lag bisher ausschließlich in
+ * `questday-data.json`, und die wird nur additiv angewandt. Ein Häkchen darauf kam deshalb
+ * nie beim zweiten Gerät an - beide Geräte schrieben endlos ihre eigene Fassung. Hier gilt
+ * dieselbe Regel wie in einer Tagesdatei: Was in der Datei steht, wird übernommen.
+ */
+export async function applyUnplannedFile(parsed: ParsedUnplannedFile): Promise<ImportOutcome> {
+  const outcome = emptyOutcome()
+  const label = 'Ungeplant.md'
+
+  const [allTasks, categories] = await Promise.all([db.tasks.toArray(), db.categories.toArray()])
+  const byId = new Map(allTasks.map((task) => [task.id, task]))
+  const occurrence = occurrenceCounter()
+  const seen = new Set<string>()
+
+  for (const line of parsed.tasks) {
+    const taskId = line.id ?? derivedIdFor('task', 'ungeplant', line.title, occurrence(line.title))
+    const known = byId.get(taskId)
+
+    if (!known) {
+      const resolved = resolveCategory(categories, line.categoryName)
+      if (resolved === undefined) warnUnknownCategory(line.categoryName, label, outcome)
+      const task: OneOffTask = {
+        id: taskId,
+        type: 'oneoff',
+        title: line.title,
+        categoryId: resolved ?? null,
+        dueDate: null,
+        time: line.startTime,
+        reminderTime: null,
+        reminderFired: false,
+        createdAt: new Date().toISOString(),
+        completed: line.checked,
+        completedAt: line.checked ? importedCompletedAt(todayISODate()) : null,
+      }
+      await db.tasks.add(task)
+      seen.add(task.id)
+      outcome.created += 1
+      continue
+    }
+
+    seen.add(known.id)
+    if (await updateTaskFields(known, line, categories, outcome, label)) outcome.updated += 1
+
+    // Der Haken ist hier die ganze Wahrheit: ohne Datum gibt es keine Tageszeile, die ihn
+    // sonst tragen könnte.
+    if (known.completed !== line.checked) {
+      await db.tasks.update(known.id, {
+        completed: line.checked,
+        completedAt: line.checked ? importedCompletedAt(todayISODate()) : null,
+      })
+      if (!line.checked) await db.taskCompletions.where('taskId').equals(known.id).delete()
+      outcome.updated += 1
+    }
+  }
+
+  // Entfernte Zeile löscht die Aufgabe - sie gehört ausschließlich in diese Datei.
+  const ownedHere = allTasks.filter((t) => t.type === 'oneoff' && t.dueDate === null)
+  const toDelete = ownedHere.filter((task) => !seen.has(task.id))
+  if (deletionsAllowed(toDelete.length, parsed.tasks.length, label, outcome)) {
+    for (const task of toDelete) {
+      await db.tasks.delete(task.id)
+      await db.taskCompletions.where('taskId').equals(task.id).delete()
+      outcome.deleted += 1
+    }
+  }
+
   return outcome
 }

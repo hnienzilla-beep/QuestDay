@@ -19,6 +19,8 @@ export const TYPE_DAY = 'questday-tag'
 export const TYPE_GOAL = 'questday-ziel'
 export const TYPE_TASKS = 'questday-aufgaben'
 export const TYPE_CATEGORIES = 'questday-kategorien'
+export const TYPE_UNPLANNED = 'questday-ungeplant'
+export const UNPLANNED_HEADING = 'Ungeplant'
 
 /** Abschnitte werden ohne Schluss-Newline gebaut; die Leerzeilen setzt der Aufrufer. */
 function section(heading: string, lines: readonly string[]): string {
@@ -154,4 +156,32 @@ export function renderCategoriesFile(snapshot: VaultSnapshot): string {
     table,
   ]
   return normalizeFileContent(parts.join('\n'))
+}
+
+/**
+ * Einmalige Aufgaben ohne Datum.
+ *
+ * Sie stehen in keiner Tagesdatei - ohne diese Datei stünde ihr Zustand ausschließlich in
+ * `questday-data.json`, und die wird beim Import nur additiv angewandt. Ein Häkchen darauf
+ * kam deshalb nie beim zweiten Gerät an, und beide Geräte schrieben ihre eigene Fassung
+ * endlos gegeneinander.
+ */
+export function renderUnplannedFile(snapshot: VaultSnapshot): string {
+  const offen = snapshot.tasks
+    .filter((task) => task.type === 'oneoff' && task.dueDate === null)
+    .sort((a, b) => compareBy([a.title, a.id], [b.title, b.id]))
+
+  const lines = offen.map((task) =>
+    renderItemLine({
+      id: task.id,
+      checked: task.completed,
+      title: task.title,
+      categoryName: categoryNameOf(snapshot, task.categoryId),
+      startTime: task.type === 'oneoff' ? task.time : null,
+    }),
+  )
+
+  return normalizeFileContent(
+    [renderFrontmatter([['typ', TYPE_UNPLANNED]]), '', section(UNPLANNED_HEADING, lines)].join('\n'),
+  )
 }
