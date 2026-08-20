@@ -2,12 +2,13 @@ import { asciiSlug } from '../canonical'
 import { gitBlobShaOf } from '../gitSha'
 import { dayFileDates } from '../model/dayScope'
 import { canonicalizeSnapshot, type VaultSnapshot } from '../model/snapshot'
-import { CATEGORIES_PATH, DATA_PATH, TASKS_PATH, dayPath, goalPath } from '../vaultPaths'
+import { CATEGORIES_PATH, DATA_PATH, TASKS_PATH, UNPLANNED_PATH, dayPath, goalPath } from '../vaultPaths'
 import {
   renderCategoriesFile,
   renderDayFile,
   renderGoalFile,
   renderTasksFile,
+  renderUnplannedFile,
 } from './renderMarkdown'
 import { renderDataJson } from './renderDataJson'
 
@@ -67,6 +68,7 @@ export function renderVault(
   }
 
   files.set(TASKS_PATH, renderTasksFile(snapshot))
+  files.set(UNPLANNED_PATH, renderUnplannedFile(snapshot))
   files.set(CATEGORIES_PATH, renderCategoriesFile(snapshot))
   files.set(DATA_PATH, renderDataJson(snapshot))
 

@@ -7,7 +7,9 @@ import {
   TYPE_DAY,
   TYPE_GOAL,
   TYPE_TASKS,
+  TYPE_UNPLANNED,
   SUBSTEPS_HEADING,
+  UNPLANNED_HEADING,
 } from '../render/renderMarkdown'
 
 /**
@@ -255,6 +257,10 @@ export interface ParsedTaskRow {
   reminderTime: string | null | ''
 }
 
+export interface ParsedUnplannedFile {
+  tasks: ItemLine[]
+}
+
 export interface ParsedTasksFile {
   rows: ParsedTaskRow[]
 }
@@ -344,4 +350,32 @@ export function parseCategoriesFile(content: string): ParseResult<ParsedCategori
   }
 
   return { ok: true, value: { rows } }
+}
+
+/**
+ * Einmalige Aufgaben ohne Datum.
+ *
+ * Dieselbe Zeilenform wie in einer Tagesdatei, nur ohne Datumsbezug - die Datei sagt
+ * ausschließlich: diese Aufgabe existiert, so heißt sie, und so steht ihr Häkchen.
+ */
+export function parseUnplannedFile(
+  content: string,
+  categoryNames: ReadonlySet<string> = new Set(),
+): ParseResult<ParsedUnplannedFile> {
+  const parsed = parseFrontmatter(normalizeFileContent(content))
+  if (!parsed) return fail('Frontmatter fehlt oder ist unvollständig')
+  if (parsed.fields.typ !== TYPE_UNPLANNED) return fail('keine QuestDay-Ungeplant-Datei')
+
+  const { preamble, sections } = splitSections(parsed.body)
+  if (preamble.some((line) => line.trim() !== '')) {
+    return fail('unerwarteter Text vor dem ersten Abschnitt')
+  }
+  for (const section of sections) {
+    if (section.heading !== UNPLANNED_HEADING) return fail(`unbekannter Abschnitt "${section.heading}"`)
+  }
+
+  const tasks = readItemSection(sectionByHeading(sections, UNPLANNED_HEADING), categoryNames)
+  if (!tasks.ok) return tasks
+
+  return { ok: true, value: { tasks: tasks.value } }
 }

@@ -348,6 +348,67 @@ describe('runSync', () => {
     expect(await db.tasks.count()).toBe(2)
   })
 
+  it('überträgt das Häkchen einer undatierten Aufgabe auf das andere Gerät', async () => {
+    // Undatierte Aufgaben stehen in keiner Tagesdatei. Ihr Zustand lag deshalb nur in
+    // questday-data.json - und die wird beim Import nur additiv angewandt. Ein Haken kam so
+    // nie beim zweiten Gerät an, und beide Geräte schrieben endlos ihre eigene Fassung.
+    await db.tasks.put(oneOff({ id: 'u1', title: 'Leon App', dueDate: null }))
+    await runSync()
+
+    const pfad = 'QuestDay/Ungeplant.md'
+    expect(github.files.get(pfad)).toContain('Leon App')
+
+    // Das andere Gerät hakt sie ab.
+    github.files.set(pfad, github.files.get(pfad)!.replace('- [ ]', '- [x]'))
+    github.touch()
+
+    await runSync()
+
+    expect((await db.tasks.get('u1'))?.completed).toBe(true)
+  })
+
+  it('nimmt das Häkchen einer undatierten Aufgabe auch wieder zurück', async () => {
+    await db.tasks.put(oneOff({ id: 'u1', title: 'Leon App', dueDate: null, completed: true, completedAt: '2026-08-18T18:47:42.157Z' }))
+    await runSync()
+
+    const pfad = 'QuestDay/Ungeplant.md'
+    github.files.set(pfad, github.files.get(pfad)!.replace('- [x]', '- [ ]'))
+    github.touch()
+
+    await runSync()
+
+    expect((await db.tasks.get('u1'))?.completed).toBe(false)
+  })
+
+  it('schreibt keinen Commit, wenn sich nur der Datenabzug unterscheidet', async () => {
+    await db.tasks.put(oneOff({ id: 'o1', title: 'Müll rausbringen', dueDate: todayISODate() }))
+    await runSync()
+
+    // Ein anderes Gerät hat dieselbe Sachlage, aber andere Zeitstempel in der JSON - ein
+    // Unterschied, über den sich beide Seiten nie einigen können.
+    const abzug = 'QuestDay/questday-data.json'
+    github.files.set(abzug, github.files.get(abzug)!.replace('"createdAt"', '"createdAt "'))
+    github.touch()
+
+    github.reset()
+    const ergebnis = await runSync()
+
+    expect(github.commits).toBe(0)
+    expect(ergebnis.pushed).toBe(0)
+  })
+
+  it('schreibt den Datenabzug weiterhin mit, sobald es echte Änderungen gibt', async () => {
+    await runSync()
+    const abzugVorher = github.files.get('QuestDay/questday-data.json')
+
+    await db.tasks.put(oneOff({ id: 'neu', title: 'Frisch', dueDate: todayISODate() }))
+    github.reset()
+    await runSync()
+
+    expect(github.commits).toBe(1)
+    expect(github.files.get('QuestDay/questday-data.json')).not.toBe(abzugVorher)
+  })
+
   it('schreibt gleichnamige Ziele nicht zwischen zwei Geräten hin und her', async () => {
     // Der gemeldete Fall: zwei Ziele mit demselben Titel. Welches Ziel in welche Datei kam,
     // entschied der lokal gemerkte Stand - und der liegt im localStorage, ist also auf jedem
